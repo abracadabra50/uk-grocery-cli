@@ -1,0 +1,32 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Session files
+*.session.json
+.sainsburys/
+
+# Build artifacts
+*.js
+*.js.map
+!jest.config.js
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test
+coverage/
+.nyc_output/
+
+# Environment
+.env
+.env.local
+
+# Temp
+*.tmp
+tmp/
+temp/

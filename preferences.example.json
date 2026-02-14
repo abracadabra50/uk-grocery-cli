@@ -1,0 +1,21 @@
+{
+  "user": "Your Name",
+  "household_size": 2,
+  "dietary_restrictions": [],
+  "dislikes": [],
+  "favorites": [],
+  "budget": {
+    "weekly": null,
+    "preference": "value"
+  },
+  "cooking": {
+    "skill_level": "intermediate",
+    "time_available": "30-45min",
+    "equipment": ["standard"]
+  },
+  "delivery": {
+    "preferred_days": [],
+    "preferred_times": []
+  },
+  "notes": "Optional: add any agent-specific configuration here"
+}

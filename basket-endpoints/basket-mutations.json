@@ -1,0 +1,40 @@
+[
+  {
+    "timestamp": "2026-02-14T20:28:40.339Z",
+    "method": "GET",
+    "url": "https://www.sainsburys.co.uk/groceries-api/gol-services/basket/v2/basket?pick_time=2026-02-15T20%3A28%3A40Z&store_number=2168&slot_booked=false",
+    "headers": {
+      "wcauthtoken": "",
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://www.sainsburys.co.uk/gol-ui/login",
+      "sec-ch-ua": "\"Chromium\";v=\"145\", \"Not:A-Brand\";v=\"99\"",
+      "sec-ch-ua-mobile": "?0",
+      "traceparent": "00-f92b6e9c03cdf50bb948d55ccf154e05-7612dc685a44b706-01",
+      "enabled-feature-flags": "show_static_cnc_messaging,findability_search,findability_autosuggest,findability_orchestrator,offers_config,favourites_single_alternative,nectar_destination_page,browse_pills_nav_type,use_cached_findability_results,pdp_meta_desc_template,occasions_navigation,resting_search,taggstar_config,all_ad_components_enabled,new_filter_pages,frequently_bought_together,favourites_boards,slot_confirmation_board,occasions_closure_end_date_2025,hard_sku_replacement",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "accept": "application/json",
+      "content-type": "application/json",
+      "tracestate": "2092320@nr=0-1-1782819-181742266-7612dc685a44b706----1771100920328"
+    },
+    "postData": null
+  },
+  {
+    "timestamp": "2026-02-14T20:28:40.521Z",
+    "method": "POST",
+    "url": "https://www.sainsburys.co.uk/groceries-api/gol-services/content/v2/withMagnoliaTemplate/ads",
+    "headers": {
+      "wcauthtoken": "",
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://www.sainsburys.co.uk/gol-ui/login",
+      "sec-ch-ua": "\"Chromium\";v=\"145\", \"Not:A-Brand\";v=\"99\"",
+      "sec-ch-ua-mobile": "?0",
+      "traceparent": "00-b310587b9964a57166c89374e86d62e9-f172ccb415cf673a-01",
+      "enabled-feature-flags": "show_static_cnc_messaging,findability_search,findability_autosuggest,findability_orchestrator,offers_config,favourites_single_alternative,nectar_destination_page,browse_pills_nav_type,use_cached_findability_results,pdp_meta_desc_template,occasions_navigation,resting_search,taggstar_config,all_ad_components_enabled,new_filter_pages,frequently_bought_together,favourites_boards,slot_confirmation_board,occasions_closure_end_date_2025,hard_sku_replacement",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "accept": "application/json",
+      "content-type": "application/json",
+      "tracestate": "2092320@nr=0-1-1782819-181742266-f172ccb415cf673a----1771100920518"
+    },
+    "postData": "{\"template_id\":\"meganav\",\"contentId\":\"Groceries-Home\",\"category_ids\":[],\"espotIds\":[\"Meganav_top\",\"Meganav_middle\",\"Meganav_bottom\"]}"
+  }
+]

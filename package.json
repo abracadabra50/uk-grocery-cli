@@ -1,0 +1,26 @@
+{
+  "name": "sainsburys-cli",
+  "version": "1.0.0",
+  "description": "Complete CLI for Sainsbury's groceries - meal planning & ordering",
+  "main": "dist/cli.js",
+  "bin": {
+    "sainsburys": "./dist/cli-complete.js",
+    "sb": "./dist/cli-complete.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/cli-complete.ts",
+    "sb": "ts-node src/cli-complete.ts"
+  },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "axios": "^1.6.0",
+    "chalk": "^4.1.2",
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}
