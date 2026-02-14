@@ -1,214 +1,160 @@
-# Sainsbury's CLI 🛒
+# UK Grocery CLI 🛒
 
-**Complete grocery shopping automation for Sainsbury's UK. Built for AI agents. Open source.**
+**Multi-supermarket grocery automation for UK. Built for AI agents. Open source.**
 
-Give your AI agent full control of Sainsbury's groceries. Search products, manage basket, book delivery slots, and checkout - all via clean CLI commands.
+Give your AI agent full control of UK groceries. Search products, compare prices, manage baskets, book delivery slots, and checkout - across multiple supermarkets from one CLI.
 
-Built for AI agents (OpenClaw, Pi, Mom, Claude Desktop, custom frameworks). Agents can use this to build meal planning, auto-reordering, price tracking, or any grocery automation workflow.
+Built for AI agents (OpenClaw, Pi, Mom, Claude Desktop). Works with any agent framework.
 
 ---
 
-## Why Sainsbury's CLI?
+## Supported Supermarkets
+
+- ✅ **Sainsbury's** - Full support (search, basket, delivery, checkout)
+- ✅ **Ocado** - Full support (London/South England only)
+- 🔜 **Tesco** - Coming soon
+- 🔜 **Asda** - Planned
+- 🔜 **Morrisons** - Planned
+
+---
+
+## Why UK Grocery CLI?
 
 AI agents can code, write, research, and plan. But they can't interact with grocery stores.
 
-**Sainsbury's CLI is the missing piece:**
+**UK Grocery CLI solves this:**
 
-- **Full API access** - Search products, manage basket, book delivery, checkout
-- **Clean CLI interface** - Simple commands agents can call via bash
-- **JSON output** - Structured data agents can parse and reason about
-- **Session management** - Auto-login, cookie persistence, no manual auth
+- **Multi-provider** - Compare prices across supermarkets
+- **Full API access** - Search, basket, delivery, checkout
+- **Clean CLI** - Simple commands agents can call
+- **JSON output** - Structured data for agent processing
+- **Price comparison** - Find best deals automatically
 
 **Agents can now:**
-- Build meal planning workflows (suggest recipes → generate shopping list → auto-order)
-- Create auto-reorder systems (monitor inventory → restock essentials)
-- Track prices over time (scrape prices → build history → alert on deals)
-- Build dietary preference systems (filter by allergens, preferences, budgets)
+- Build meal planning workflows
+- Compare prices across stores and optimize shopping
+- Create auto-reorder systems
+- Track price history and alert on deals
+- Build dietary preference filtering
 
-You build the agent logic. This handles the Sainsbury's integration.
+You build the agent logic. This handles the supermarket integration.
 
 ---
 
 ## How It Works
 
-**Simple CLI commands that agents can call:**
+**Simple CLI commands for each provider:**
 
 ```bash
-# Search products
-npm run sb search "milk" --json
-# Returns: {products: [{name, price, id, stock}]}
+# Search Sainsbury's
+groc --provider sainsburys search "milk"
 
-# Add to basket
-npm run sb add <product-id> --qty 2
-# Returns: {success, basket_total}
+# Search Ocado
+groc --provider ocado search "milk"
 
-# View basket
-npm run sb basket --json
-# Returns: {items, total_cost, total_quantity}
-
-# Book delivery and checkout
-npm run sb slots --json
-npm run sb book <slot-id>
-npm run sb checkout
+# Compare across all supermarkets
+groc compare "milk"
 ```
 
-**Example agent workflow (meal planning):**
+**Example output:**
 
 ```
-User: "Plan meals for this week, £50 budget"
+🔍 Comparing "milk" across supermarkets...
 
-Agent logic:
-  1. Generate meal ideas based on preferences
-  2. Extract ingredient list from recipes
-  3. For each ingredient:
-     → npm run sb search "{ingredient}" --json
-     → Pick best match by price/size
-  4. Build shopping list with totals
-  5. Show to user for approval
-  6. For each approved item:
-     → npm run sb add {product_id} --qty {qty}
-  7. Show basket: npm run sb basket --json
-  8. Book slot: npm run sb slots → npm run sb book {slot_id}
-  9. Checkout: npm run sb checkout
+📦 SAINSBURYS
+──────────────────────────────────────────────────
+1. Sainsbury's British Semi-Skimmed Milk 2.27L
+   £1.65 💰 BEST
+
+📦 OCADO
+──────────────────────────────────────────────────
+1. Ocado Organic Whole Milk 2L
+   £2.10
 ```
-
-You build the meal planning logic. This CLI handles the Sainsbury's integration.
-
----
-
-## Features
-
-### 🔍 Product Search
-Full product catalog search with filters.
-
-- **Keyword search** - find products by name/description
-- **Category browsing** - explore by department
-- **Product details** - price, stock, nutritional info, images
-- **JSON output** - structured data for agent processing
-- **Pagination** - handle large result sets
-
-### 🛒 Basket Management
-Complete CRUD operations on shopping basket.
-
-- **Add items** - by product ID with quantities
-- **Update quantities** - modify amounts
-- **Remove items** - delete individually or clear entire basket
-- **View basket** - full item list with prices and totals
-- **JSON output** - parse basket state for agent logic
-
-### 📦 Delivery & Checkout
-Full delivery booking and order placement.
-
-- **View slots** - available delivery times
-- **Book slot** - reserve delivery window
-- **Checkout** - complete order and payment
-- **Order history** - view past orders
-- **Dry run mode** - preview checkout without placing order
-
-### 🔐 Session Management
-Persistent authentication with auto-refresh.
-
-- **Playwright login** - handles Sainsbury's auth flow
-- **Cookie persistence** - saves to `~/.sainsburys/session.json`
-- **Auto-refresh** - no manual re-login needed
-- **7-day expiry** - sessions last a week
-
-### 📊 JSON Output
-All commands support `--json` flag for structured data.
-
-```json
-{
-  "products": [
-    {
-      "product_uid": "357937",
-      "name": "Sainsbury's British Semi Skimmed Milk 2.27L",
-      "retail_price": {"price": 1.65},
-      "in_stock": true
-    }
-  ]
-}
-```
-
-Agents can parse, filter, and reason about data easily.
 
 ---
 
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/sainsburys-cli
-cd sainsburys-cli
+git clone https://github.com/abracadabra50/uk-grocery-cli
+cd uk-grocery-cli
 npm install
-npx playwright install chromium
 ```
 
 ---
 
 ## Quick Start
 
-### Login Once
+### Login
 
 ```bash
-npm run sb login --email YOUR_EMAIL --password YOUR_PASSWORD
-```
+# Sainsbury's
+groc --provider sainsburys login --email YOU@EMAIL.COM --password PASS
 
-Session saves to `~/.sainsburys/session.json` and auto-refreshes.
+# Ocado
+groc --provider ocado login --email YOU@EMAIL.COM --password PASS
+```
 
 ### Search Products
 
 ```bash
-npm run sb search "milk"
-npm run sb search "organic eggs" --limit 10
-npm run sb categories
+groc --provider sainsburys search "organic eggs"
+groc compare "milk"  # Searches all providers
 ```
 
 ### Manage Basket
 
 ```bash
-npm run sb add 357937 --qty 2
-npm run sb basket
-npm run sb update <item-id> 3
-npm run sb remove <item-id>
+groc --provider sainsburys add 357937 --qty 2
+groc --provider sainsburys basket
+groc --provider sainsburys remove <item-id>
 ```
 
 ### Checkout
 
 ```bash
-npm run sb slots
-npm run sb book <slot-id>
-npm run sb checkout --dry-run  # Preview
-npm run sb checkout            # Place order
+groc --provider sainsburys slots
+groc --provider sainsburys book <slot-id>
+groc --provider sainsburys checkout
 ```
 
 ---
 
 ## CLI Commands
 
-### Product Discovery
+### Provider Selection
+
 ```bash
-search <query>              # Search products
-product <id>                # Product details
-categories                  # Browse categories
+-p, --provider <name>    Choose provider: sainsburys, ocado
+groc providers           List all available providers
+```
+
+### Product Search
+
+```bash
+search <query>           Search products
+compare <query>          Compare across all supermarkets
 ```
 
 ### Basket Operations
+
 ```bash
-basket                      # View basket
-add <id> --qty <n>          # Add to basket
-update <item-id> <qty>      # Update quantity
-remove <item-id>            # Remove item
-clear --force               # Empty basket
+basket                   View basket
+add <id> --qty <n>       Add to basket
+remove <item-id>         Remove from basket
 ```
 
-### Delivery & Orders
+### Delivery & Checkout
+
 ```bash
-slots                       # View delivery slots
-book <slot-id>              # Reserve slot
-checkout                    # Complete order
-orders                      # Order history
+slots                    View delivery slots
+book <slot-id>           Reserve slot
+checkout                 Place order
 ```
 
 ### Authentication
+
 ```bash
 login --email <email> --password <pass>
 logout
@@ -216,259 +162,215 @@ logout
 
 ---
 
-## Agent Integration
+## Price Comparison
 
-### For AI Agents (OpenClaw, Pi, Mom, etc.)
-
-Add as a skill to your agent's skill directory:
+**Killer feature: Find best prices across stores**
 
 ```bash
-# Copy skill
-cp -r sainsburys-cli /path/to/agent/skills/
-
-# Agent can now call CLI commands
-await bash("cd skills/sainsburys-cli && npm run sb search 'milk' --json");
+groc compare "organic milk"
 ```
 
-### What Agents Can Build
+Agent workflow:
+1. Searches Sainsbury's, Ocado, (+ Tesco when ready)
+2. Compares prices per unit (£/L, £/kg, etc.)
+3. Shows best value across all stores
+4. Optimizes total shop across providers
 
-**This CLI provides the primitives. You build the logic:**
-
-**Meal Planning:**
-- Agent suggests meals based on user preferences
-- Extracts ingredients from recipes
-- Uses CLI to search products and build basket
-- Books delivery and checks out
-
-**Auto-Reordering:**
-- Agent tracks what user buys regularly
-- Monitors inventory (external system or user input)
-- Uses CLI to reorder when low
-- Schedules regular deliveries
-
-**Price Tracking:**
-- Agent periodically searches products
-- Logs prices to database
-- Alerts on deals
-- Optimizes shopping timing
-
-**Budget Management:**
-- Agent tracks spending via basket totals
-- Suggests cheaper alternatives
-- Warns when over budget
-- Optimizes basket for value
-
-See `AGENTS.md` for detailed integration patterns and code examples.
-
-### Block Kit Support (Slack Bots)
-
-For Slack agents, use Block Kit for rich interfaces:
-
-```javascript
-// Shopping list with actions
-{
-  "type": "section",
-  "text": {"type": "mrkdwn", "text": "*🛒 Shopping List*\n£48.50 (24 items)"},
-  "actions": [
-    {"type": "button", "text": "Add to Basket", "style": "primary"}
-  ]
-}
+Example:
+```
+Sainsbury's: £1.65 (2.27L) = £0.73/L
+Ocado: £1.85 (2L) = £0.93/L
+Tesco: £1.55 (2.27L) = £0.68/L ✅ BEST
 ```
 
-See `SKILL.md` for Block Kit examples.
+No one else does this. Your agent can genuinely save you money.
 
 ---
 
-## Preferences (Optional)
+## Agent Integration
 
-If building meal planning workflows, you can add a preferences file to guide agent behavior.
+Add as skill to any agent framework:
 
-**Example:** `preferences.json`
-
-```json
-{
-  "dietary_restrictions": ["vegetarian", "gluten-free"],
-  "dislikes": ["mushrooms", "olives"],
-  "budget": {"weekly": 50},
-  "preferred_brands": ["Sainsbury's Organic"],
-  "household_size": 2
-}
+```bash
+cp -r uk-grocery-cli /path/to/agent/skills/
 ```
 
-**Special dietary needs:**
+**Agent can now:**
 
-If you need specific sourcing (e.g., halal meat, kosher products, local farms):
+```typescript
+// Search and compare
+await bash("cd skills/uk-grocery-cli && npm run groc compare 'milk' --json");
 
-```json
-{
-  "dietary_restrictions": ["halal"],
-  "external_sources": {
-    "meat": "halal_butcher",
-    "note": "Exclude non-halal meat from Sainsbury's"
-  },
-  "sainsburys_excludes": ["beef", "lamb", "chicken", "turkey"]
-}
+// Build shopping list
+await bash("cd skills/uk-grocery-cli && npm run groc -- --provider sainsburys add 357937 --qty 2");
+
+// Checkout
+await bash("cd skills/uk-grocery-cli && npm run groc -- --provider sainsburys checkout");
 ```
 
-Your agent can read preferences and filter search results, exclude products, or split shopping lists.
-
-**Note:** This is agent logic, not CLI functionality. The CLI just provides product search and basket operations - your agent decides what to buy.
+See `AGENTS.md` for detailed integration patterns.
 
 ---
 
 ## Architecture
 
-### Clean REST API
-Built on Sainsbury's public REST APIs (no GraphQL complexity).
+### Provider Abstraction
+
+```typescript
+interface GroceryProvider {
+  search(query: string): Promise<Product[]>;
+  getBasket(): Promise<Basket>;
+  addToBasket(id: string, qty: number): Promise<void>;
+  getDeliverySlots(): Promise<Slot[]>;
+  checkout(): Promise<Order>;
+}
+
+// Sainsbury's implementation
+class SainsburysProvider implements GroceryProvider { ... }
+
+// Ocado implementation
+class OcadoProvider implements GroceryProvider { ... }
+```
+
+### Clean REST APIs
+
+Both Sainsbury's and Ocado use REST (no GraphQL complexity):
 
 ```
-GET  /groceries-api/gol-services/product/v1/product?filter[keyword]=milk
-POST /groceries-api/gol-services/basket/v2/basket/items
-GET  /groceries-api/gol-services/slot/v1/slot/reservation
-POST /groceries-api/gol-services/checkout/v1/checkout
+Sainsbury's:
+  GET  /groceries-api/gol-services/product/v1/product?filter[keyword]=milk
+  POST /groceries-api/gol-services/basket/v2/basket/items
+
+Ocado:
+  GET  /api/search/v1/products?searchTerm=milk
+  POST /api/trolley/v1/items
 ```
-
-### Session Management
-Cookie-based authentication with auto-refresh:
-- Session saves to `~/.sainsburys/session.json`
-- Auto-loads on CLI commands
-- Expires after 7 days
-- Playwright handles login flow
-
-### TypeScript + Node.js
-- Type-safe API client
-- Commander.js CLI framework
-- Axios for HTTP
-- Playwright for auth
 
 ---
 
 ## Project Structure
 
 ```
-sainsburys-cli/
+uk-grocery-cli/
 ├── src/
-│   ├── api/
-│   │   └── client.ts          # REST API wrapper
-│   ├── auth/
-│   │   └── login.ts           # Playwright authentication
-│   ├── commands/
-│   │   └── basket.ts          # Basket operations
-│   └── cli-complete.ts        # Main CLI
+│   ├── providers/
+│   │   ├── types.ts           # Provider interface
+│   │   ├── sainsburys.ts      # Sainsbury's implementation
+│   │   ├── ocado.ts           # Ocado implementation
+│   │   └── index.ts           # Provider factory
+│   ├── cli.ts                 # Multi-provider CLI
+│   └── auth/
+│       └── login.ts           # Playwright auth
 ├── SKILL.md                   # Open skills format
-├── AGENTS.md                  # Agent integration guide
+├── AGENTS.md                  # Integration guide
 ├── README.md                  # This file
 └── package.json
 ```
 
 ---
 
-## Comparison: Tesco vs Sainsbury's
+## Provider Comparison
 
-We initially built for Tesco, then switched to Sainsbury's. Here's why:
-
-| Factor | Tesco | Sainsbury's |
-|--------|-------|-------------|
-| API Type | GraphQL | REST |
-| Architecture | SSR (server-side rendered) | SPA (client-side) |
-| Discoverability | Hard (introspection disabled) | Easy (network tab) |
-| Time to MVP | 3 hours = 30% complete | 1 hour = 100% complete |
-| Total build time | 10 days estimated | 4 hours actual |
-| Ease score | 6/10 | 9/10 |
-| Worth it? | No | Yes! |
-
-**Sainsbury's was 3 points easier and 30x faster to build.**
+| Provider | Coverage | Ease | Status |
+|----------|----------|------|--------|
+| Sainsbury's | UK-wide | 9/10 (REST) | ✅ Complete |
+| Ocado | London/South | 9/10 (REST) | ✅ Complete |
+| Tesco | UK-wide | 6/10 (GraphQL) | 🔜 Planned |
+| Asda | UK-wide | Unknown | 🔜 Planned |
+| Morrisons | UK-wide | Unknown | 🔜 Planned |
 
 ---
 
-## Known Limitations
+## Payment
 
-### Geographic
-- **UK only** (Sainsbury's delivery areas)
-- Edinburgh confirmed working ✅
+Uses your saved payment method from each supermarket account.
 
-### Products
-- **No halal meat** - purchase separately from halal butcher
-- **Age-restricted items** may require ID on delivery
+**Setup:**
+1. Add payment method at sainsburys.co.uk/myaccount (or ocado.com/account)
+2. CLI uses session cookies to authenticate
+3. Checkout uses your default card
+4. No card details pass through CLI
 
-### Technical
-- Requires Node.js 18+
-- Playwright needs Chromium (200MB download)
-- Session expires after 7 days (auto-refresh)
+**Security:**
+- Session cookies stored locally (`~/.sainsburys/`, `~/.ocado/`)
+- `.gitignore` excludes session files
+- PCI compliant (no card data in CLI)
+- Same as using website in browser
+
+---
+
+## Preferences (Optional)
+
+For meal planning agents, add preferences:
+
+```json
+{
+  "dietary_restrictions": ["vegetarian", "gluten-free"],
+  "budget": {"weekly": 50},
+  "preferred_providers": ["sainsburys", "ocado"],
+  "household_size": 2
+}
+```
+
+Your agent can filter results, compare providers, split shopping lists.
 
 ---
 
 ## Examples
 
-### Example 1: Quick Grocery Run
+### Compare & Find Best Price
 
 ```bash
-# Search and add
-npm run sb search "milk"
-npm run sb add 357937 --qty 2
-
-# View basket
-npm run sb basket
-
-# Checkout
-npm run sb checkout
+groc compare "organic eggs" --json
 ```
 
-### Example 2: Weekly Meal Plan
+Agent picks cheapest provider automatically.
 
+### Multi-Provider Shopping
+
+```bash
+# Milk from Sainsbury's (cheapest)
+groc --provider sainsburys add 357937 --qty 2
+
+# Special items from Ocado
+groc --provider ocado add 84920 --qty 1
+
+# Checkout both separately
+groc --provider sainsburys checkout
+groc --provider ocado checkout
 ```
-User: "Plan meals for this week, £60 budget, 2 people"
 
-Agent suggests:
-  Monday: Chicken stir-fry (£7)
-  Tuesday: Spaghetti carbonara (£6)
-  Wednesday: Salmon with roasted veg (£12)
-  Thursday: Vegetarian curry (£8)
-  Friday: Homemade pizza (£7)
-  Weekend: Slow-cooked lamb (£15)
+### Price Tracking
 
-Total: £55 + basics = £60
+```bash
+# Daily check
+groc --provider sainsburys search "milk" --json | jq '.products[0].retail_price.price'
 
-Agent builds shopping list, searches Sainsbury's, adds to basket.
-
-User: "Book delivery for Tuesday 18:00-20:00"
-
-Agent books slot and checks out.
-
-Done! 🎉
+# Log to file
+echo "$(date),${price}" >> prices.csv
 ```
 
 ---
 
 ## Development
 
-### Run Tests
 ```bash
-npm run test
-```
-
-### Build
-```bash
-npm run build
-```
-
-### Dev Mode
-```bash
-npm run dev -- search "milk"
+npm run build   # Compile TypeScript
+npm run dev     # Development mode
+npm run groc    # Run CLI
 ```
 
 ---
 
 ## Contributing
 
-Contributions welcome! This is open source.
+Contributions welcome!
 
 **Want to add:**
 - More supermarkets (Tesco, Asda, Morrisons)
-- Recipe database
-- Nutritional tracking
-- Price history charts
-- Multi-store price comparison
+- Price history tracking
+- Nutrition data
+- Multi-store optimization algorithms
 
 Open an issue or PR!
 
@@ -480,20 +382,32 @@ MIT - Free to use, modify, distribute
 
 ---
 
-## Built With
+## Roadmap
 
-- [TypeScript](https://www.typescriptlang.com/) - Type safety
-- [Commander.js](https://github.com/tj/commander.js) - CLI framework
-- [Axios](https://axios-http.com/) - HTTP client
-- [Playwright](https://playwright.dev/) - Browser automation for auth
+### v2.0 (Current)
+- ✅ Multi-provider architecture
+- ✅ Sainsbury's provider
+- ✅ Ocado provider
+- ✅ Price comparison
+
+### v2.1 (Next)
+- 🔜 Tesco provider (GraphQL)
+- 🔜 Price history tracking
+- 🔜 Delivery slot optimization
+
+### v2.2 (Future)
+- 🔜 Asda provider
+- 🔜 Morrisons provider
+- 🔜 Multi-store basket optimizer
+- 🔜 MCP server wrapper
 
 ---
 
 ## Credits
 
-Built by [Zishan Ashraf](https://github.com/yourusername)
+Built by [Zishan Ashraf](https://github.com/abracadabra50)
 
-Inspired by [Shellfish](https://github.com/yourusername/shellfish) - Agentic commerce for Shopify
+Inspired by [Shellfish](https://github.com/abracadabra50/shellfish) - Agentic commerce for Shopify
 
 ---
 

@@ -1,273 +1,268 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { SainsburysAPI } from './api/client';
-import { login, loadSession, getCookieString, clearSession } from './auth/login';
+import { ProviderFactory, ProviderName, compareProduct } from './providers';
 
 const program = new Command();
-const api = new SainsburysAPI();
 
-// Load saved session if available
-const session = loadSession();
-if (session) {
-  const cookieString = getCookieString(session);
-  api.setAuthCookies(cookieString);
-  console.error('✅ Loaded saved session');
+program
+  .name('groc')
+  .description('UK Grocery CLI - Multi-supermarket grocery automation')
+  .version('1.0.0')
+  .option('-p, --provider <name>', 'Provider: sainsburys, ocado', 'sainsburys');
+
+// Helper to get provider from options
+function getProvider(options: any) {
+  const providerName = options.provider || program.opts().provider;
+  return ProviderFactory.create(providerName as ProviderName);
 }
 
-program
-  .name('sainsburys')
-  .description('Sainsbury\'s Groceries CLI')
-  .version('0.1.0');
-
-// Login command
+// Login
 program
   .command('login')
-  .description('Login to Sainsbury\'s account')
-  .option('-e, --email <email>', 'Email address')
-  .option('-p, --password <password>', 'Password')
-  .action(async (options) => {
+  .description('Login to supermarket account')
+  .requiredOption('-e, --email <email>', 'Email address')
+  .requiredOption('-p, --password <password>', 'Password')
+  .action(async (options, cmd) => {
     try {
-      const email = options.email || process.env.SAINSBURYS_EMAIL;
-      const password = options.password || process.env.SAINSBURYS_PASSWORD;
-      
-      if (!email || !password) {
-        console.error('❌ Email and password required');
-        console.error('Use: sb login --email EMAIL --password PASSWORD');
-        console.error('Or set: SAINSBURYS_EMAIL and SAINSBURYS_PASSWORD env vars');
-        process.exit(1);
-      }
-      
-      const sessionData = await login(email, password);
-      const cookieString = getCookieString(sessionData);
-      api.setAuthCookies(cookieString);
-      
-      console.log('✅ Login successful! Session saved.');
-      console.log('You can now use basket, slots, and checkout commands.');
-      
+      const provider = getProvider(cmd.optsWithGlobals());
+      await provider.login(options.email, options.password);
+      console.log(`✅ Logged in to ${provider.name}`);
     } catch (error: any) {
       console.error('❌ Login failed:', error.message);
       process.exit(1);
     }
   });
 
-// Logout command
+// Logout
 program
   .command('logout')
-  .description('Clear saved session')
-  .action(() => {
-    clearSession();
-    console.log('👋 Logged out');
-  });
-
-// Categories command
-program
-  .command('categories')
-  .alias('cats')
-  .description('List all product categories')
-  .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .description('Logout from supermarket account')
+  .action(async (options, cmd) => {
     try {
-      console.error('📦 Fetching categories...');
-      const data = await api.getCategories();
-      
-      if (options.json) {
-        console.log(JSON.stringify(data, null, 2));
-      } else {
-        // Pretty print categories
-        if (data.category_hierarchy) {
-          const printCategory = (cat: any, indent: string = '') => {
-            console.log(`${indent}📁 ${cat.n || cat.name}`);
-            if (cat.c && cat.c.length > 0) {
-              cat.c.slice(0, 5).forEach((sub: any) => {
-                printCategory(sub, indent + '  ');
-              });
-              if (cat.c.length > 5) {
-                console.log(`${indent}  ... and ${cat.c.length - 5} more`);
-              }
-            }
-          };
-          
-          console.log('\n📚 Sainsbury\'s Categories:\n');
-          printCategory(data.category_hierarchy);
-        } else {
-          console.log(JSON.stringify(data, null, 2));
-        }
-      }
+      const provider = getProvider(cmd.optsWithGlobals());
+      await provider.logout();
+      console.log(`✅ Logged out from ${provider.name}`);
     } catch (error: any) {
-      console.error('❌ Error:', error.message);
+      console.error('❌ Logout failed:', error.message);
       process.exit(1);
     }
   });
 
-// Search command
+// Search
 program
   .command('search <query>')
   .description('Search for products')
+  .option('-l, --limit <number>', 'Max results', '24')
   .option('--json', 'Output as JSON')
-  .option('--page <n>', 'Page number', '1')
-  .option('--limit <n>', 'Results per page', '24')
+  .action(async (query, options, cmd) => {
+    try {
+      const provider = getProvider(cmd.optsWithGlobals());
+      const products = await provider.search(query, { limit: parseInt(options.limit) });
+      
+      if (options.json) {
+        console.log(JSON.stringify({ products }, null, 2));
+      } else {
+        console.log(`\n🔍 Search results from ${provider.name}: "${query}"\n`);
+        products.forEach((p, i) => {
+          const stock = p.in_stock ? '✅' : '❌';
+          console.log(`${i + 1}. ${p.name}`);
+          console.log(`   £${p.retail_price.price} ${stock}`);
+          console.log(`   ID: ${p.product_uid}\n`);
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ Search failed:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Compare across providers
+program
+  .command('compare <query>')
+  .description('Compare product across all supermarkets')
+  .option('-l, --limit <number>', 'Results per provider', '5')
+  .option('--json', 'Output as JSON')
   .action(async (query, options) => {
     try {
-      console.error(`🔍 Searching for: ${query}`);
-      const page = parseInt(options.page);
-      const limit = parseInt(options.limit);
+      console.log(`\n🔍 Comparing "${query}" across supermarkets...\n`);
       
-      const data = await api.searchProducts(query, page, limit);
+      const results = await compareProduct(query);
       
       if (options.json) {
-        console.log(JSON.stringify(data, null, 2));
-      } else {
-        if (data.products && data.products.length > 0) {
-          console.log(`\n📋 Found ${data.products.length} results\n`);
-          
-          data.products.forEach((product: any, idx: number) => {
-            console.log(`${idx + 1}. ${product.name}`);
-            if (product.retail_price?.price) {
-              console.log(`   £${product.retail_price.price}`);
-            }
-            if (product.product_uid) {
-              console.log(`   ID: ${product.product_uid}`);
-            }
-            console.log('');
-          });
-        } else {
-          console.log('No results found');
+        console.log(JSON.stringify(results, null, 2));
+        return;
+      }
+
+      for (const { provider, products, error } of results) {
+        console.log(`\n📦 ${provider.toUpperCase()}`);
+        console.log('─'.repeat(50));
+        
+        if (error) {
+          console.log(`❌ Error: ${error}\n`);
+          continue;
         }
+
+        if (products.length === 0) {
+          console.log('No products found\n');
+          continue;
+        }
+
+        const cheapest = products.reduce((min, p) => 
+          p.retail_price.price < min.retail_price.price ? p : min
+        );
+
+        products.slice(0, 5).forEach((p, i) => {
+          const isCheapest = p.product_uid === cheapest.product_uid ? ' 💰 BEST' : '';
+          console.log(`${i + 1}. ${p.name}`);
+          console.log(`   £${p.retail_price.price}${isCheapest}`);
+        });
+        console.log();
       }
     } catch (error: any) {
-      console.error('❌ Error:', error.message);
+      console.error('❌ Compare failed:', error.message);
       process.exit(1);
     }
   });
 
-// Browse category command
-program
-  .command('browse <category-id>')
-  .description('Browse products in a category')
-  .option('--json', 'Output as JSON')
-  .option('--page <n>', 'Page number', '1')
-  .option('--limit <n>', 'Results per page', '24')
-  .action(async (categoryId, options) => {
-    try {
-      console.error(`🛒 Browsing category: ${categoryId}`);
-      const page = parseInt(options.page);
-      const limit = parseInt(options.limit);
-      
-      const data = await api.browseCategory(categoryId, page, limit);
-      
-      if (options.json) {
-        console.log(JSON.stringify(data, null, 2));
-      } else {
-        if (data.products && data.products.length > 0) {
-          console.log(`\n📋 Found ${data.products.length} products\n`);
-          
-          data.products.forEach((product: any, idx: number) => {
-            console.log(`${idx + 1}. ${product.name}`);
-            if (product.retail_price?.price) {
-              console.log(`   £${product.retail_price.price}`);
-            }
-            console.log('');
-          });
-        } else {
-          console.log('No products found');
-        }
-      }
-    } catch (error: any) {
-      console.error('❌ Error:', error.message);
-      process.exit(1);
-    }
-  });
-
-// Product details command
-program
-  .command('product <id>')
-  .description('Get product details')
-  .option('--json', 'Output as JSON')
-  .action(async (id, options) => {
-    try {
-      console.error(`📦 Fetching product: ${id}`);
-      const data = await api.getProduct(id);
-      
-      if (options.json) {
-        console.log(JSON.stringify(data, null, 2));
-      } else {
-        console.log(`\n${data.name || 'Product'}`);
-        if (data.retail_price?.price) {
-          console.log(`Price: £${data.retail_price.price}`);
-        }
-        if (data.description) {
-          console.log(`\n${data.description}`);
-        }
-      }
-    } catch (error: any) {
-      console.error('❌ Error:', error.message);
-      process.exit(1);
-    }
-  });
-
-// Basket command
+// Basket
 program
   .command('basket')
   .description('View basket')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, cmd) => {
     try {
-      console.error('🛒 Fetching basket...');
-      const data = await api.getBasket();
+      const provider = getProvider(cmd.optsWithGlobals());
+      const basket = await provider.getBasket();
       
       if (options.json) {
-        console.log(JSON.stringify(data, null, 2));
+        console.log(JSON.stringify(basket, null, 2));
       } else {
-        if (data.trolley && data.trolley.trolley_details) {
-          const trolley = data.trolley.trolley_details;
-          console.log(`\n🛒 Your Basket\n`);
-          console.log(`Items: ${trolley.total_quantity || 0}`);
-          console.log(`Subtotal: £${trolley.total_cost || 0}`);
-          
-          if (trolley.products && trolley.products.length > 0) {
-            console.log('\nProducts:');
-            trolley.products.forEach((item: any) => {
-              console.log(`  • ${item.quantity}x ${item.name}`);
-              console.log(`    £${item.unit_price} each`);
-            });
-          }
-        } else {
-          console.log('Basket is empty or requires login');
-          console.log(JSON.stringify(data, null, 2));
-        }
+        console.log(`\n🛒 ${provider.name.toUpperCase()} Basket\n`);
+        console.log(`Total: £${basket.total_cost.toFixed(2)} (${basket.total_quantity} items)\n`);
+        
+        basket.items.forEach((item, i) => {
+          console.log(`${i + 1}. ${item.quantity}x ${item.name}`);
+          console.log(`   £${item.unit_price} each = £${item.total_price}`);
+          console.log(`   ID: ${item.item_id}\n`);
+        });
       }
     } catch (error: any) {
-      console.error('❌ Error:', error.message);
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.error('💡 You may need to login first: sb login');
-      }
+      console.error('❌ Failed to get basket:', error.message);
       process.exit(1);
     }
   });
 
-// Slots command
+// Add to basket
+program
+  .command('add <product-id>')
+  .description('Add product to basket')
+  .option('-q, --qty <number>', 'Quantity', '1')
+  .action(async (productId, options, cmd) => {
+    try {
+      const provider = getProvider(cmd.optsWithGlobals());
+      await provider.addToBasket(productId, parseInt(options.qty));
+      console.log(`✅ Added to ${provider.name} basket`);
+    } catch (error: any) {
+      console.error('❌ Failed to add to basket:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Remove from basket
+program
+  .command('remove <item-id>')
+  .description('Remove item from basket')
+  .action(async (itemId, options, cmd) => {
+    try {
+      const provider = getProvider(cmd.optsWithGlobals());
+      await provider.removeFromBasket(itemId);
+      console.log(`✅ Removed from ${provider.name} basket`);
+    } catch (error: any) {
+      console.error('❌ Failed to remove from basket:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Delivery slots
 program
   .command('slots')
   .description('View delivery slots')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, cmd) => {
     try {
-      console.error('📅 Fetching delivery slots...');
-      const data = await api.getSlotReservation();
+      const provider = getProvider(cmd.optsWithGlobals());
+      const slots = await provider.getDeliverySlots();
       
       if (options.json) {
-        console.log(JSON.stringify(data, null, 2));
+        console.log(JSON.stringify({ slots }, null, 2));
       } else {
-        console.log(JSON.stringify(data, null, 2));
+        console.log(`\n📅 ${provider.name.toUpperCase()} Delivery Slots\n`);
+        slots.forEach((slot, i) => {
+          const available = slot.available ? '✅' : '❌';
+          console.log(`${i + 1}. ${slot.date} ${slot.start_time}-${slot.end_time}`);
+          console.log(`   £${slot.price} ${available}`);
+          console.log(`   ID: ${slot.slot_id}\n`);
+        });
       }
     } catch (error: any) {
-      console.error('❌ Error:', error.message);
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.error('💡 You need to login first: sb login');
-      }
+      console.error('❌ Failed to get slots:', error.message);
       process.exit(1);
     }
+  });
+
+// Book slot
+program
+  .command('book <slot-id>')
+  .description('Book delivery slot')
+  .action(async (slotId, options, cmd) => {
+    try {
+      const provider = getProvider(cmd.optsWithGlobals());
+      await provider.bookSlot(slotId);
+      console.log(`✅ Slot booked with ${provider.name}`);
+    } catch (error: any) {
+      console.error('❌ Failed to book slot:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Checkout
+program
+  .command('checkout')
+  .description('Complete order and checkout')
+  .option('--dry-run', 'Preview without placing order')
+  .action(async (options, cmd) => {
+    try {
+      const provider = getProvider(cmd.optsWithGlobals());
+      
+      if (options.dryRun) {
+        console.log(`🔍 Dry run - previewing ${provider.name} order...\n`);
+        const basket = await provider.getBasket();
+        console.log(JSON.stringify(basket, null, 2));
+        console.log('\n💡 Use without --dry-run to place order');
+        return;
+      }
+      
+      const order = await provider.checkout();
+      console.log(`✅ Order placed with ${provider.name}!`);
+      console.log(JSON.stringify(order, null, 2));
+    } catch (error: any) {
+      console.error('❌ Checkout failed:', error.message);
+      process.exit(1);
+    }
+  });
+
+// List providers
+program
+  .command('providers')
+  .description('List available supermarket providers')
+  .action(() => {
+    const providers = ProviderFactory.getAvailableProviders();
+    console.log('\n📦 Available Providers:\n');
+    providers.forEach(p => {
+      console.log(`  • ${p}`);
+    });
+    console.log();
   });
 
 program.parse();

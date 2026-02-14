@@ -1,16 +1,32 @@
 {
-  "name": "sainsburys-cli",
-  "version": "1.0.0",
-  "description": "Complete CLI for Sainsbury's groceries - meal planning & ordering",
+  "name": "uk-grocery-cli",
+  "version": "2.0.0",
+  "description": "Multi-supermarket grocery CLI for UK. Sainsbury's, Ocado, and more. Built for AI agents.",
   "main": "dist/cli.js",
   "bin": {
-    "sainsburys": "./dist/cli-complete.js",
-    "sb": "./dist/cli-complete.js"
+    "groc": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node src/cli-complete.ts",
-    "sb": "ts-node src/cli-complete.ts"
+    "dev": "ts-node src/cli.ts",
+    "groc": "ts-node src/cli.ts"
+  },
+  "keywords": [
+    "groceries",
+    "sainsburys",
+    "ocado",
+    "tesco",
+    "uk",
+    "shopping",
+    "automation",
+    "ai-agent",
+    "cli"
+  ],
+  "author": "Zishan Ashraf",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abracadabra50/uk-grocery-cli"
   },
   "dependencies": {
     "commander": "^11.0.0",
