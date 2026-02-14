@@ -1,0 +1,32 @@
+{
+  "name": "uk-grocery",
+  "version": "2.0.0",
+  "author": "Zishan Ashraf",
+  "repository": "https://github.com/abracadabra50/uk-grocery-cli",
+  "description": "Multi-supermarket grocery automation for UK. Search products, manage baskets, book delivery, checkout across Sainsbury's, Ocado, and more. Built for AI agents.",
+  "tags": [
+    "groceries",
+    "shopping",
+    "uk",
+    "sainsburys",
+    "ocado",
+    "automation",
+    "meal-planning",
+    "ecommerce"
+  ],
+  "main": "SKILL.md",
+  "files": [
+    "SKILL.md",
+    "setup.sh",
+    "preferences.schema.json"
+  ],
+  "requirements": {
+    "node": ">=18.0.0",
+    "dependencies": ["playwright", "typescript", "axios", "commander"]
+  },
+  "setup": {
+    "script": "./setup.sh",
+    "interactive": true,
+    "configFile": ".uk-grocery-config.json"
+  }
+}

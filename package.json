@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/cli.ts",
-    "groc": "ts-node src/cli.ts"
+    "groc": "ts-node src/cli.ts",
+    "setup": "./setup.sh"
   },
   "keywords": [
     "groceries",
