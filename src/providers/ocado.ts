@@ -232,14 +232,41 @@ export class OcadoProvider implements GroceryProvider {
   }
 
   async getOrders(): Promise<Order[]> {
-    // Ocado order history endpoint
-    const response = await this.client.get('/orders/v1/history');
-    
-    return response.data.orders?.map((o: any) => ({
-      order_id: o.id || o.orderId,
-      status: o.status,
-      total: parseFloat(o.total || 0),
-      items: []
-    })) || [];
+    try {
+      const endpoints = [
+        '/orders/v1/history',
+        '/order/v1/orders',
+        '/customer/v1/orders'
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await this.client.get(endpoint);
+          if (response.data && (response.data.orders || response.data.orderHistory)) {
+            const orders = response.data.orders || response.data.orderHistory || [];
+            return orders.map((o: any) => ({
+              order_id: o.id || o.orderId || o.orderNumber,
+              status: o.status || o.orderStatus || 'unknown',
+              total: parseFloat(o.total || o.totalAmount || 0),
+              delivery_slot: o.deliverySlot ? {
+                slot_id: o.deliverySlot.id || '',
+                start_time: o.deliverySlot.startTime || '',
+                end_time: o.deliverySlot.endTime || '',
+                date: o.deliverySlot.date || '',
+                price: parseFloat(o.deliverySlot.price || 0),
+                available: true
+              } : undefined,
+              items: o.items || []
+            }));
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      return [];
+    } catch (error: any) {
+      return [];
+    }
   }
 }

@@ -180,8 +180,43 @@ export class SainsburysProvider implements GroceryProvider {
   }
 
   async getOrders(): Promise<Order[]> {
-    // Sainsbury's order history endpoint would go here
-    // Not implemented in initial version
-    return [];
+    try {
+      // Try common order history endpoints
+      const endpoints = [
+        '/order/v1/orders',
+        '/order/v1/history', 
+        '/orders/v1/history',
+        '/customer/v1/orders'
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await this.client.get(endpoint);
+          if (response.data && (response.data.orders || response.data.order_history)) {
+            const orders = response.data.orders || response.data.order_history || [];
+            return orders.map((o: any) => ({
+              order_id: o.order_id || o.order_number || o.id,
+              status: o.status || o.order_status || 'unknown',
+              total: parseFloat(o.total || o.total_cost || o.order_total || 0),
+              delivery_slot: o.delivery_slot ? {
+                slot_id: o.delivery_slot.slot_id || '',
+                start_time: o.delivery_slot.start_time || '',
+                end_time: o.delivery_slot.end_time || '',
+                date: o.delivery_slot.date || '',
+                price: parseFloat(o.delivery_slot.price || 0),
+                available: true
+              } : undefined,
+              items: o.items || []
+            }));
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      return [];
+    } catch (error: any) {
+      return [];
+    }
   }
 }
