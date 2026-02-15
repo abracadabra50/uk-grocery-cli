@@ -236,16 +236,20 @@ program
       const provider = getProvider(cmd.optsWithGlobals());
       
       if (options.dryRun) {
-        console.log(`🔍 Dry run - previewing ${provider.name} order...\n`);
-        const basket = await provider.getBasket();
-        console.log(JSON.stringify(basket, null, 2));
-        console.log('\n💡 Use without --dry-run to place order');
-        return;
+        console.log(`🔍 Dry run - previewing ${provider.name} checkout flow...\n`);
       }
       
-      const order = await provider.checkout();
-      console.log(`✅ Order placed with ${provider.name}!`);
-      console.log(JSON.stringify(order, null, 2));
+      const order = await provider.checkout(options.dryRun || false);
+      
+      if (options.dryRun) {
+        console.log(`\n📋 Checkout Preview:`);
+        console.log(`Total: £${order.total}`);
+        console.log(`Status: ${order.status}`);
+        console.log('\n💡 Use without --dry-run to place order');
+      } else {
+        console.log(`✅ Order placed with ${provider.name}!`);
+        console.log(JSON.stringify(order, null, 2));
+      }
     } catch (error: any) {
       console.error('❌ Checkout failed:', error.message);
       process.exit(1);

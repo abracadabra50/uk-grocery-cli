@@ -222,45 +222,33 @@ export class SainsburysProvider implements GroceryProvider {
   }
 
   async getDeliverySlots(): Promise<DeliverySlot[]> {
-    // Check reservation status first
-    const reservationResponse = await this.client.get('/slot/v1/slot/reservation');
-    const reservation = reservationResponse.data;
+    // Use browser automation to get slots
+    const { getSlots } = await import('../browser/slots');
+    const slots = await getSlots();
     
-    console.log('Reservation status:', JSON.stringify(reservation, null, 2));
-    
-    // Get delivery information (minimum spend, etc.)
-    const deliveryInfoResponse = await this.client.get('/slot/v1/slot/delivery-information');
-    console.log('Delivery info:', JSON.stringify(deliveryInfoResponse.data, null, 2));
-    
-    // TODO: The actual slots list endpoint has not been discovered yet
-    // The slots may be embedded in the page or require a different API call
-    // For now, return empty array with helpful error
-    console.warn('⚠️ Slots listing endpoint not yet discovered');
-    console.warn('Postcode:', reservation.postcode);
-    console.warn('Store:', reservation.store_identifier);
-    console.warn('Region:', reservation.region);
-    
-    return [];
+    return slots.map(s => ({
+      slot_id: s.slot_id,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      date: s.date,
+      price: s.price,
+      available: s.available
+    }));
   }
 
   async bookSlot(slotId: string): Promise<void> {
-    await this.client.post('/slot/v1/slot/reservation', {
-      slot_id: slotId
-    });
+    const { bookSlot } = await import('../browser/slots');
+    await bookSlot(slotId);
   }
 
-  async checkout(): Promise<Order> {
-    // NOTE: Direct API calls to checkout endpoint return "Access Denied"
-    // Checkout likely requires browser context (referer/origin headers)
-    // or must be called from the web app flow
-    // TODO: Implement via Playwright browser automation
-    throw new Error('Checkout endpoint requires browser automation - not yet implemented');
+  async checkout(dryRun: boolean = false): Promise<Order> {
+    const { checkout } = await import('../browser/checkout');
+    const result = await checkout(dryRun);
     
-    const response = await this.client.post('/checkout/v1/checkout');
     return {
-      order_id: response.data.order_id || 'unknown',
-      status: response.data.status || 'placed',
-      total: parseFloat(response.data.total || 0),
+      order_id: result.order_id,
+      status: result.payment_status,
+      total: result.total,
       items: []
     };
   }
