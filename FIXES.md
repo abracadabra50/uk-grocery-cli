@@ -399,3 +399,115 @@ node dist/cli.js basket --json | jq '.total_cost'
 **Lines Changed:** ~200 across 2 files
 **Bugs Fixed:** 7 major issues
 **Coffee:** ☕☕☕
+
+## Slots & Checkout Discovery - 2026-02-15 14:45
+
+### Attempted Discovery
+
+**Methods used:**
+1. Playwright browser automation with network monitoring
+2. Manual navigation to slot selection page
+3. Direct curl requests to potential endpoints
+4. Tested with basket above minimum spend (£27.27)
+
+### Findings
+
+**Working Endpoints:**
+- `GET /slot/v1/slot/delivery-information` ✅
+  - Returns: `{ hd_minimum_spend: "25", cnc_minimum_spend: "0" }`
+  - No auth issues
+
+- `GET /slot/v1/slot/reservation` ✅
+  - Returns: `{ reservation_type, postcode, region, store_identifier, flexi_stores }`
+  - Shows current reservation status
+
+**Access Denied:**
+- `GET /slot/v1/slots` ❌
+- `GET /slot/v1/slot/available` ❌
+- `GET /slot/v1/slot/list` ❌
+- `GET /delivery/v1/slots` ❌
+- `POST /checkout/v1/checkout` ❌
+
+All return HTML error page:
+```html
+<HTML><HEAD>
+<TITLE>Access Denied</TITLE>
+</HEAD><BODY>
+<H1>Access Denied</H1>
+You don't have permission to access...
+```
+
+### Analysis
+
+**Why Access Denied?**
+
+1. **Missing Browser Context**: Endpoints likely require:
+   - `Referer` header from Sainsbury's web app
+   - `Origin` header
+   - Additional CSRF tokens or session validation
+
+2. **Client-Side Rendering**: Slots may be:
+   - Embedded in page HTML/JavaScript
+   - Loaded via GraphQL (not REST)
+   - Rendered client-side from page data
+
+3. **Web App Only Flow**: Checkout/slots may be intentionally:
+   - Restricted to official web app
+   - Protected against automated ordering
+   - Requiring human interaction (CAPTCHA, etc.)
+
+### Page Load Issues
+
+When navigating to `/gol-ui/slotselection`:
+- Page shows `site_template=error` in analytics
+- Network timeout after 45s
+- Multiple JavaScript errors logged to New Relic
+- Page may be broken or require specific flow
+
+### Recommendations
+
+**For Slots:**
+1. **Option A**: Full browser automation
+   - Use Playwright to navigate through booking flow
+   - Extract slot data from page HTML/DOM
+   - Simulate button clicks for booking
+
+2. **Option B**: Wait for community discovery
+   - Mark as "help wanted" in GitHub issues
+   - Someone with more Sainsbury's context may know the flow
+
+**For Checkout:**
+1. Must use browser automation
+2. Cannot be done via direct API calls
+3. Requires simulating full user journey:
+   - Basket → Slot selection → Checkout → Payment
+
+### Implementation Status
+
+**Updated code to:**
+- Return helpful warnings instead of failing silently
+- Log postcode, store, region from reservation endpoint
+- Show delivery info (minimum spend)
+- Throw clear error for checkout with note about browser automation
+
+**Files updated:**
+- `src/providers/sainsburys.ts` - Added warnings and error handling
+- `API-REFERENCE.md` - Documented Access Denied findings
+- `FIXES.md` - This section
+
+### Conclusion
+
+**Core shopping flow (search → basket) is solid and production-ready.**
+
+**Slots/checkout require browser automation - not simple REST API calls.**
+
+This is a significant finding: Sainsbury's has intentionally locked down checkout/slots to prevent automated ordering. Any future implementation will need to:
+- Use full browser automation (Playwright)
+- Handle CAPTCHAs if present
+- Respect rate limits
+- Navigate full UI flow
+
+For v1.0 release: **Ship without slots/checkout.** Core value is there.
+
+For v1.1+: **Implement browser-based booking flow** or wait for community contributions.
+

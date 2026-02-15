@@ -222,15 +222,25 @@ export class SainsburysProvider implements GroceryProvider {
   }
 
   async getDeliverySlots(): Promise<DeliverySlot[]> {
-    const response = await this.client.get('/slot/v1/slot/reservation');
-    return response.data.slots?.map((s: any) => ({
-      slot_id: s.slot_id,
-      start_time: s.start_time,
-      end_time: s.end_time,
-      date: s.date,
-      price: parseFloat(s.price || 0),
-      available: s.available !== false
-    })) || [];
+    // Check reservation status first
+    const reservationResponse = await this.client.get('/slot/v1/slot/reservation');
+    const reservation = reservationResponse.data;
+    
+    console.log('Reservation status:', JSON.stringify(reservation, null, 2));
+    
+    // Get delivery information (minimum spend, etc.)
+    const deliveryInfoResponse = await this.client.get('/slot/v1/slot/delivery-information');
+    console.log('Delivery info:', JSON.stringify(deliveryInfoResponse.data, null, 2));
+    
+    // TODO: The actual slots list endpoint has not been discovered yet
+    // The slots may be embedded in the page or require a different API call
+    // For now, return empty array with helpful error
+    console.warn('⚠️ Slots listing endpoint not yet discovered');
+    console.warn('Postcode:', reservation.postcode);
+    console.warn('Store:', reservation.store_identifier);
+    console.warn('Region:', reservation.region);
+    
+    return [];
   }
 
   async bookSlot(slotId: string): Promise<void> {
@@ -240,6 +250,12 @@ export class SainsburysProvider implements GroceryProvider {
   }
 
   async checkout(): Promise<Order> {
+    // NOTE: Direct API calls to checkout endpoint return "Access Denied"
+    // Checkout likely requires browser context (referer/origin headers)
+    // or must be called from the web app flow
+    // TODO: Implement via Playwright browser automation
+    throw new Error('Checkout endpoint requires browser automation - not yet implemented');
+    
     const response = await this.client.post('/checkout/v1/checkout');
     return {
       order_id: response.data.order_id || 'unknown',

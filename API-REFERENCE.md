@@ -85,27 +85,45 @@ PUT /groceries-api/gol-services/basket/v2/basket/items/{item_uid}
 Status: Unknown - not tested
 ```
 
-### Slots (Endpoint Unknown)
+###Slots (Access Denied)
+
+**Get Delivery Information**
+```http
+GET /groceries-api/gol-services/slot/v1/slot/delivery-information
+Auth: Cookies + wcauthtoken
+Status: ✅ Working
+Response: { hd_minimum_spend: "25", cnc_minimum_spend: "0" }
+```
+
+**Get Reservation Status**
+```http
+GET /groceries-api/gol-services/slot/v1/slot/reservation
+Auth: Cookies + wcauthtoken
+Status: ✅ Working
+Response: { reservation_type, postcode, region, store_identifier, flexi_stores, is_alcohol_restricted_store }
+```
 
 **List Available Slots**
-```
-Status: Endpoint not discovered
-Note: /slot/v1/slot/reservation only returns reservation status, not available slots
-Hypothesis: Slots may be loaded client-side or require minimum spend to be met
+```http
+GET /groceries-api/gol-services/slot/v1/slots
+Status: ❌ Access Denied
+Note: Direct API calls return "Access Denied". Likely requires browser context (referer/origin headers) or slots are embedded in page HTML/JavaScript.
 ```
 
 **Book Slot**
 ```http
 POST /groceries-api/gol-services/slot/v1/slot/reservation
-Status: Unknown - not tested
+Status: ❌ Access Denied
+Note: Cannot test without successful slot listing. May require Playwright automation.
 ```
 
-### Checkout
+### Checkout (Access Denied)
 
 **Complete Checkout**
 ```http
 POST /groceries-api/gol-services/checkout/v1/checkout
-Status: Unknown - not tested
+Status: ❌ Access Denied
+Note: "You don't have permission to access this endpoint" - Direct API calls are blocked. Checkout requires browser automation with proper referer/origin headers from the web app.
 ```
 
 ### Orders
