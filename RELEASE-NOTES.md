@@ -59,12 +59,31 @@ node dist/cli.js update ITEM_UID 3
 - **Session Duration**: ~7 days before re-login
 - **UK Phone Number**: Must have UK mobile for SMS codes
 
-### Experimental Features
-- **Delivery Slots**: API endpoint for listing slots not yet discovered
-- **Checkout**: Endpoint exists but untested with real orders
-- **Order Tracking**: Returns 404 without active orders
+### Experimental Features (Requires Browser Automation)
 
-These features are marked as experimental and contributions are welcome!
+After extensive testing, we discovered that Sainsbury's blocks direct API access to slots/checkout:
+
+- **Delivery Slots**: Listing endpoint returns "Access Denied"
+  - Info endpoints work (minimum spend, reservation status)
+  - Actual slot listing requires browser context or is client-side rendered
+  
+- **Checkout**: Endpoint returns "Access Denied"  
+  - Protected against automated ordering
+  - Requires browser automation with proper referer/origin headers
+  
+- **Order Tracking**: Returns 404 (no active orders to test with)
+
+**Why Blocked?**
+Sainsbury's has intentionally restricted automated booking/checkout. Future implementation will require:
+- Full Playwright browser automation
+- Simulating UI clicks and navigation
+- Proper browser context (referer, origin, CSRF tokens)
+- Possible CAPTCHA handling
+
+**Current Workaround:**
+Use CLI for shopping list/basket management, complete checkout manually in browser.
+
+Contributions welcome - see FIXES.md for detailed discovery session and endpoint testing results.
 
 ## API Endpoints
 
