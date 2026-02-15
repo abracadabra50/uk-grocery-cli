@@ -515,3 +515,43 @@ MIT - Free to use, modify, distribute
 ---
 
 **Make grocery shopping effortless with AI! 🛒**
+
+---
+
+## Current Status (Updated 2026-02-15)
+
+### ✅ Working Features
+- **Login**: OAuth with interactive MFA (SMS code prompt)
+- **Search**: Find products by keyword
+- **Add to Basket**: Add items with quantity
+- **View Basket**: See full basket with item details
+- **Remove from Basket**: Remove items by item_uid
+- **Update Quantity**: Change item quantities
+
+### ⚠️ Experimental / Needs Discovery
+- **Delivery Slots**: API endpoint for listing slots not yet discovered
+- **Checkout**: Endpoint exists but untested
+- **Order Tracking**: Endpoint returns 404 (no active orders to test)
+
+### Authentication Notes
+- **2FA Required**: Every login requires SMS verification code
+- **Session Duration**: ~7 days before re-login needed
+- **Session Storage**: `~/.sainsburys/session.json`
+- **wcauthtoken**: Extracted automatically from cookies
+
+### API Endpoints Verified
+
+**Working:**
+- `POST /basket/v2/basket/item` - Add to basket
+- `GET /basket/v2/basket` - View basket
+- `PUT /basket/v2/basket` - Update/remove items (with items array)
+- `GET /product/v1/product` - Search products
+- `/gol-ui/oauth/login` - OAuth login flow
+
+**Experimental:**
+- `GET /slot/v1/slot/reservation` - Returns reservation status only
+- `POST /checkout/v1/checkout` - Untested
+- `GET /order/v1/order/status` - Returns 404 without active order
+
+See `API-REFERENCE.md` for complete endpoint documentation.
+

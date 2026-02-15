@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { GroceryProvider, Product, Basket, DeliverySlot, Order, SearchOptions, BasketItem } from './types';
-import { loginToSainsburys } from '../auth/login';
+import { login } from '../auth/login';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -30,7 +30,22 @@ export class SainsburysProvider implements GroceryProvider {
       if (fs.existsSync(SESSION_FILE)) {
         const session = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'));
         if (session.cookies) {
-          this.client.defaults.headers.common['Cookie'] = session.cookies;
+          // Handle both formats: array (from login.ts) or string (legacy)
+          let cookieString: string;
+          if (Array.isArray(session.cookies)) {
+            // Convert cookie objects to header string
+            cookieString = session.cookies.map((c: any) => `${c.name}=${c.value}`).join('; ');
+            
+            // Extract WC_AUTHENTICATION token for basket operations
+            const authCookie = session.cookies.find((c: any) => c.name.startsWith('WC_AUTHENTICATION_'));
+            if (authCookie) {
+              this.client.defaults.headers.common['wcauthtoken'] = authCookie.value;
+            }
+          } else {
+            // Already a string
+            cookieString = session.cookies;
+          }
+          this.client.defaults.headers.common['Cookie'] = cookieString;
         }
       }
     } catch (error) {
@@ -47,9 +62,19 @@ export class SainsburysProvider implements GroceryProvider {
   }
 
   async login(email: string, password: string): Promise<void> {
-    const cookies = await loginToSainsburys(email, password);
-    this.saveSession(cookies);
-    this.client.defaults.headers.common['Cookie'] = cookies;
+    const sessionData = await login(email, password);
+    // Convert cookie objects to cookie header string
+    const cookieString = sessionData.cookies.map((c: any) => `${c.name}=${c.value}`).join('; ');
+    
+    // Extract WC_AUTHENTICATION token for basket operations
+    const authCookie = sessionData.cookies.find((c: any) => c.name.startsWith('WC_AUTHENTICATION_'));
+    if (authCookie) {
+      this.client.defaults.headers.common['wcauthtoken'] = authCookie.value;
+    }
+    
+    // Don't call saveSession - login() already saved the full session data
+    // Just set the cookie header for API requests
+    this.client.defaults.headers.common['Cookie'] = cookieString;
   }
 
   async logout(): Promise<void> {
@@ -111,37 +136,82 @@ export class SainsburysProvider implements GroceryProvider {
   }
 
   async getBasket(): Promise<Basket> {
-    const response = await this.client.get('/basket/v2/basket');
-    const data = response.data.trolley;
+    const pickTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const response = await this.client.get('/basket/v2/basket', {
+      params: {
+        pick_time: pickTime,
+        store_number: '0560',
+        slot_booked: 'false'
+      }
+    });
+    const data = response.data;
     
     return {
-      items: data.products?.map((p: any) => ({
-        item_id: p.line_number,
-        product_uid: p.product_uid,
-        name: p.name,
-        quantity: p.quantity,
-        unit_price: parseFloat(p.unit_price?.price || 0),
-        total_price: parseFloat(p.total_price?.price || 0)
+      items: data.items?.map((item: any) => ({
+        item_id: item.item_uid,
+        product_uid: item.product?.sku,
+        name: item.product?.name,
+        quantity: item.quantity,
+        unit_price: parseFloat(item.subtotal_price) / item.quantity,
+        total_price: parseFloat(item.subtotal_price || 0)
       })) || [],
-      total_quantity: data.total_quantity || 0,
-      total_cost: parseFloat(data.trolley_details?.total_cost || 0),
+      total_quantity: data.item_count || 0,
+      total_cost: parseFloat(data.total_price || 0),
       provider: this.name
     };
   }
 
   async addToBasket(productId: string, quantity: number): Promise<void> {
-    await this.client.post('/basket/v2/basket/items', {
+    // Generate pick_time (tomorrow at current time)
+    const pickTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    
+    await this.client.post('/basket/v2/basket/item', {
       product_uid: productId,
-      quantity
+      quantity,
+      uom: 'ea',  // unit of measure: 'ea' for each
+      selected_catchweight: ''
+    }, {
+      params: {
+        pick_time: pickTime,
+        store_number: '0560',  // default store
+        slot_booked: 'false'
+      }
     });
   }
 
   async updateBasketItem(itemId: string, quantity: number): Promise<void> {
-    await this.client.put(`/basket/v2/basket/items/${itemId}`, { quantity });
+    const pickTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    
+    // Get current basket to find the item
+    const basket = await this.getBasket();
+    const item = basket.items.find(i => i.item_id === itemId);
+    
+    if (!item) {
+      throw new Error(`Item ${itemId} not found in basket`);
+    }
+    
+    // Update using PUT with items array
+    await this.client.put('/basket/v2/basket', {
+      items: [{
+        product_uid: item.product_uid,
+        quantity,
+        uom: 'ea',
+        selected_catchweight: '',
+        item_uid: itemId,
+        decreasing_quantity: quantity < item.quantity
+      }]
+    }, {
+      params: {
+        pick_time: pickTime,
+        store_number: '0560',
+        slot_booked: 'false'
+      }
+    });
   }
 
   async removeFromBasket(itemId: string): Promise<void> {
-    await this.client.delete(`/basket/v2/basket/items/${itemId}`);
+    // Remove by updating to quantity 0
+    await this.updateBasketItem(itemId, 0);
   }
 
   async clearBasket(): Promise<void> {

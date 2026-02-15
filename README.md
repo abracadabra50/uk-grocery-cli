@@ -408,3 +408,21 @@ Inspired by [Shellfish](https://github.com/abracadabra50/shellfish) - Agentic co
 ---
 
 **Enable your AI agent to handle grocery shopping. Focus on cooking, not ordering. 🛒**
+
+## Known Limitations
+
+### Authentication
+- **2FA Required**: Sainsbury's requires SMS verification on every login. The CLI will prompt you to enter the code from your phone.
+- **Session Duration**: Sessions expire after ~7 days. You'll need to re-login.
+
+### Features
+- ✅ **Working**: Search, Add to Basket, View Basket, Remove from Basket
+- ⚠️ **Experimental**: Delivery slots (API endpoint not fully discovered)
+- ⚠️ **Experimental**: Checkout flow (needs testing)
+- ⚠️ **Experimental**: Order tracking
+
+### API Discovery
+Some endpoints (slots, checkout) are still being reverse-engineered. See `API-REFERENCE.md` for complete documentation of working vs. experimental endpoints.
+
+**Contributions welcome!** If you discover missing endpoints, please open a PR.
+
