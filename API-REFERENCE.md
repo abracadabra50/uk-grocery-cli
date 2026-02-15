@@ -106,25 +106,55 @@ Response: { reservation_type, postcode, region, store_identifier, flexi_stores, 
 **List Available Slots**
 ```http
 GET /groceries-api/gol-services/slot/v1/slots
-Status: ❌ Access Denied
-Note: Direct API calls return "Access Denied". Likely requires browser context (referer/origin headers) or slots are embedded in page HTML/JavaScript.
+Status: ❌ Access Denied (direct API)
+Solution: ✅ Browser automation implemented
+Implementation: src/browser/slots.ts
+Method: Playwright navigates to /gol-ui/slotselection and parses DOM
 ```
 
 **Book Slot**
 ```http
 POST /groceries-api/gol-services/slot/v1/slot/reservation
-Status: ❌ Access Denied
-Note: Cannot test without successful slot listing. May require Playwright automation.
+Status: ❌ Access Denied (direct API)
+Solution: ✅ Browser automation implemented
+Implementation: src/browser/slots.ts -> bookSlot()
+Method: Playwright clicks slot elements and confirmation buttons
 ```
 
-### Checkout (Access Denied)
+### Checkout (Browser Automation)
 
 **Complete Checkout**
 ```http
 POST /groceries-api/gol-services/checkout/v1/checkout
-Status: ❌ Access Denied
-Note: "You don't have permission to access this endpoint" - Direct API calls are blocked. Checkout requires browser automation with proper referer/origin headers from the web app.
+Status: ❌ Access Denied (direct API)
+Solution: ✅ Browser automation implemented
+Implementation: src/browser/checkout.ts
+Method: Playwright navigates full checkout flow with dry-run support
 ```
+
+## Browser Automation Approach
+
+Since direct API calls to slots/checkout return "Access Denied", we use Playwright browser automation:
+
+**Anti-Bot Detection:**
+- Non-headless mode (visible browser)
+- Disable automation control flags
+- Proper user agent and viewport
+- Hide navigator.webdriver property
+
+**How It Works:**
+1. Load saved session from ~/.sainsburys/session.json
+2. Navigate to slot/checkout pages
+3. Accept cookie consent
+4. Parse DOM for slot/checkout data
+5. Simulate user clicks for booking/checkout
+6. Capture screenshots on errors for debugging
+
+**Files:**
+- `src/browser/slots.ts` - Slot listing and booking
+- `src/browser/checkout.ts` - Checkout flow with dry-run
+
+This bypasses Access Denied and provides full functionality.
 
 ### Orders
 
