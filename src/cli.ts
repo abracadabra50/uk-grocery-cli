@@ -252,6 +252,61 @@ program
     }
   });
 
+// Orders
+program
+  .command('orders')
+  .description('View order history')
+  .option('--json', 'Output as JSON')
+  .option('--limit <number>', 'Max orders to show', '10')
+  .action(async (options, cmd) => {
+    try {
+      const provider = getProvider(cmd.optsWithGlobals());
+      const orders = await provider.getOrders();
+      
+      if (options.json) {
+        console.log(JSON.stringify({ orders }, null, 2));
+        return;
+      }
+      
+      if (orders.length === 0) {
+        console.log(`\n📦 No orders found for ${provider.name}\n`);
+        console.log('Note: Order history may not be available via API.');
+        console.log('Check the website for full order history.\n');
+        return;
+      }
+      
+      console.log(`\n📦 ${provider.name.toUpperCase()} Order History\n`);
+      
+      const limit = parseInt(options.limit);
+      const displayOrders = orders.slice(0, limit);
+      
+      displayOrders.forEach((order, i) => {
+        console.log(`${i + 1}. Order #${order.order_id}`);
+        console.log(`   Status: ${order.status}`);
+        console.log(`   Total: £${order.total.toFixed(2)}`);
+        
+        if (order.delivery_slot) {
+          console.log(`   Delivery: ${order.delivery_slot.date} ${order.delivery_slot.start_time}-${order.delivery_slot.end_time}`);
+        }
+        
+        if (order.items && order.items.length > 0) {
+          console.log(`   Items: ${order.items.length}`);
+        }
+        
+        console.log();
+      });
+      
+      if (orders.length > limit) {
+        console.log(`Showing ${limit} of ${orders.length} orders. Use --limit to see more.\n`);
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to get orders:', error.message);
+      console.log('\nNote: Order history may require additional permissions.');
+      console.log('Try logging in again or check the website.\n');
+      process.exit(1);
+    }
+  });
+
 // List providers
 program
   .command('providers')

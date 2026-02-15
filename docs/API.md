@@ -284,8 +284,18 @@ const orders = await provider.getOrders();
 
 orders.forEach(order => {
   console.log(`Order ${order.order_id}: £${order.total} - ${order.status}`);
+  
+  if (order.delivery_slot) {
+    console.log(`Delivery: ${order.delivery_slot.date} ${order.delivery_slot.start_time}-${order.delivery_slot.end_time}`);
+  }
+  
+  if (order.items) {
+    console.log(`Items: ${order.items.length}`);
+  }
 });
 ```
+
+**Note:** Order history availability depends on the provider's API. Some providers may not expose order history via API, or may require additional authentication. If `getOrders()` returns an empty array, check the supermarket website directly for order history.
 
 ---
 

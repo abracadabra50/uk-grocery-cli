@@ -34,6 +34,7 @@ groc search "milk"
 groc add 357937 --qty 2
 groc basket
 groc checkout
+groc orders
 ```
 
 ## Supported Supermarkets
@@ -92,6 +93,7 @@ groc book <slot-id>
 
 # Checkout
 groc checkout
+groc orders
 ```
 
 ## Features
@@ -149,7 +151,8 @@ const products = JSON.parse(results);
 await bash(`groc add ${products.products[0].product_uid} --qty 2`);
 
 // Checkout
-await bash("groc checkout");
+await bash("groc checkout
+groc orders");
 ```
 
 ### Smart Shopping Example
@@ -242,7 +245,8 @@ groc clear --force
 # Delivery & checkout
 groc slots [--json]
 groc book <slot-id>
-groc checkout [--dry-run]
+groc checkout
+groc orders [--dry-run]
 
 # Provider selection
 groc --provider sainsburys <command>
