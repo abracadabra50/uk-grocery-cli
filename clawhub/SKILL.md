@@ -1,7 +1,7 @@
 ---
 name: uk-grocery
 version: 2.0.0
-author: Zishan Ashraf
+author: zish
 repository: https://github.com/abracadabra50/uk-grocery-cli
 license: MIT
 tags: [groceries, shopping, uk, sainsburys, ocado, automation, meal-planning]

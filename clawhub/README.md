@@ -62,7 +62,7 @@ clawhub publish --version 2.0.0 --tag latest
 
 - **Name:** uk-grocery
 - **Version:** 2.0.0
-- **Author:** Zishan Ashraf
+- **Author:** zish
 - **License:** MIT
 - **Repository:** https://github.com/abracadabra50/uk-grocery-cli
 

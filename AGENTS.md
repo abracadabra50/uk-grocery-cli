@@ -56,7 +56,7 @@ description: AI-powered meal planning and grocery ordering
 license: MIT
 compatibility: Node.js 18+, TypeScript, Playwright
 metadata:
-  author: Zishan Ashraf
+  author: zish
   version: "1.0.0"
 allowed-tools: Bash({baseDir}/node:*), Bash(npm:run:sb:*)
 ---

@@ -401,7 +401,7 @@ Not affiliated with Sainsbury's, Ocado, Tesco, Asda, or Morrisons.
 
 ## Credits
 
-Built by [Zishan Ashraf](https://github.com/abracadabra50)
+Built by [zish](https://github.com/abracadabra50)
 
 Inspired by [Shellfish](https://github.com/abracadabra50/shellfish) - Agentic commerce for Shopify
 

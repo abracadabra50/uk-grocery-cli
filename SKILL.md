@@ -4,7 +4,7 @@ description: Complete Sainsbury's UK grocery automation CLI. Search products, ma
 license: MIT
 compatibility: Node.js 18+, TypeScript, Playwright for auth. UK only (Sainsbury's delivery areas).
 metadata:
-  author: Zishan Ashraf
+  author: zish
   version: "1.0.0"
   repository: https://github.com/yourusername/sainsburys-cli
   tags: [groceries, sainsburys, uk, shopping, automation, cli, agent-tool]
