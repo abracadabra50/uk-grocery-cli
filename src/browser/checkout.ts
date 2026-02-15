@@ -5,8 +5,11 @@ import * as os from 'os';
 export interface CheckoutResult {
   order_id: string;
   total: number;
-  slot_confirmed: boolean;
-  payment_status: string;
+  delivery_slot?: string;
+  delivery_cost: number;
+  items_count: number;
+  status: 'preview' | 'payment_required' | 'completed';
+  payment_url?: string;
 }
 
 async function loadSession(page: Page): Promise<void> {
@@ -19,25 +22,30 @@ async function loadSession(page: Page): Promise<void> {
   await page.context().addCookies(session.cookies);
 }
 
+/**
+ * Navigate checkout flow and extract order details
+ * 
+ * IMPORTANT: This NEVER completes payment automatically
+ * - dryRun=true: Preview only, no slot booking
+ * - dryRun=false: Books slot, navigates to payment page, then STOPS
+ * 
+ * User must complete payment manually in browser or via separate flow
+ */
 export async function checkout(dryRun: boolean = true): Promise<CheckoutResult> {
   const browser = await chromium.launch({ 
-    headless: false,
+    headless: false, // Always show browser for checkout - transparency
     args: ['--disable-blink-features=AutomationControlled']
   });
+  
   const page = await browser.newPage({
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     viewport: { width: 1920, height: 1080 }
   });
   
-  // Hide automation markers
-  await page.addInitScript(`
-    Object.defineProperty(navigator, 'webdriver', { get: () => false });
-  `);
-  
   try {
     await loadSession(page);
     
-    console.log('🛒 Navigating to basket...');
+    console.log('🛒 Step 1: Loading basket...');
     await page.goto('https://www.sainsburys.co.uk/gol-ui/trolley', {
       waitUntil: 'domcontentloaded',
       timeout: 60000
@@ -45,111 +53,135 @@ export async function checkout(dryRun: boolean = true): Promise<CheckoutResult> 
     
     // Accept cookies
     try {
-      await page.click('#onetrust-accept-btn-handler', { timeout: 2000 });
+      await page.click('#onetrust-accept-btn-handler', { timeout: 3000 });
     } catch (e) {}
     
     await page.waitForTimeout(3000);
     
-    // Find checkout button
-    const checkoutButton = await page.$('button:has-text("Checkout")') ||
-                           await page.$('a:has-text("Checkout")') ||
-                           await page.$('[data-testid="checkout-button"]');
-    
-    if (!checkoutButton) {
-      throw new Error('Checkout button not found. Ensure basket has items and meets minimum spend.');
-    }
-    
-    console.log('💳 Proceeding to checkout...');
-    await checkoutButton.click();
-    await page.waitForTimeout(5000);
-    
-    // At this point we should be on checkout page
-    // Check if slot selection is required
-    const slotRequired = await page.$('text=Select a delivery slot') ||
-                         await page.$('text=Book a slot');
-    
-    if (slotRequired) {
-      console.log('📅 Slot selection required - navigating...');
-      const slotButton = await page.$('button:has-text("Select slot")') ||
-                         await page.$('a[href*="slot"]');
-      if (slotButton) {
-        await slotButton.click();
-        await page.waitForTimeout(5000);
-        
-        // Select first available slot
-        const firstSlot = await page.$('button:has-text("Book"):not(:has-text("Unavailable"))');
-        if (firstSlot) {
-          console.log('🎯 Selecting first available slot...');
-          await firstSlot.click();
-          await page.waitForTimeout(3000);
-          
-          // Confirm slot
-          const confirmSlot = await page.$('button:has-text("Confirm")');
-          if (confirmSlot) {
-            await confirmSlot.click();
-            await page.waitForTimeout(3000);
-          }
-        }
-      }
-    }
-    
-    // Now on payment/final checkout page
-    console.log('📋 Reviewing order...');
-    
-    // Extract order details
-    const orderText = await page.textContent('body');
-    const totalMatch = orderText?.match(/Total[:\s]*£(\d+\.?\d*)/i);
+    // Extract basket info
+    const pageText = await page.textContent('body');
+    const totalMatch = pageText?.match(/Total[:\s]*£(\d+\.?\d*)/i);
     const total = totalMatch ? parseFloat(totalMatch[1]) : 0;
     
-    console.log(`💰 Order total: £${total}`);
+    console.log(`💰 Basket total: £${total}`);
+    
+    if (total < 25) {
+      throw new Error(`Basket total £${total} is below £25 minimum spend`);
+    }
     
     if (dryRun) {
-      console.log('🔍 DRY RUN - Not placing order');
-      await page.screenshot({ path: '/tmp/sainsburys-checkout-preview.png', fullPage: true });
-      console.log('📸 Screenshot saved to /tmp/sainsburys-checkout-preview.png');
+      console.log('\n🔍 DRY RUN MODE');
+      console.log('└─ Basket preview only');
+      console.log('└─ No slot will be booked');
+      console.log('└─ No payment will be requested');
+      
+      await page.screenshot({ path: '/tmp/checkout-preview.png', fullPage: true });
       
       return {
         order_id: 'DRY_RUN',
         total,
-        slot_confirmed: slotRequired !== null,
-        payment_status: 'pending'
+        delivery_cost: 0,
+        items_count: 0,
+        status: 'preview'
       };
     }
     
-    // Real checkout - find and click place order button
-    const placeOrderButton = await page.$('button:has-text("Place order")') ||
-                             await page.$('button:has-text("Pay now")') ||
-                             await page.$('[data-testid="place-order"]');
+    // Real checkout flow starts here
+    console.log('\n💳 Step 2: Proceeding to checkout...');
     
-    if (!placeOrderButton) {
-      throw new Error('Place order button not found');
+    const checkoutButton = await page.$('button:has-text("Checkout"), a:has-text("Checkout")');
+    if (!checkoutButton) {
+      throw new Error('Checkout button not found');
     }
     
-    console.log('✅ Placing order...');
-    await placeOrderButton.click();
+    await checkoutButton.click();
     await page.waitForTimeout(5000);
     
-    // Wait for confirmation page
-    await page.waitForSelector('text=Order confirmed, text=Thank you', { timeout: 30000 });
+    console.log('📍 Current URL:', page.url());
     
-    // Extract order ID
-    const confirmationText = await page.textContent('body');
-    const orderIdMatch = confirmationText?.match(/Order\s+(?:ID|number)[:\s]*(\w+)/i);
-    const orderId = orderIdMatch ? orderIdMatch[1] : 'UNKNOWN';
+    // Check if slot selection is needed
+    const currentUrl = page.url();
+    if (currentUrl.includes('slot')) {
+      console.log('\n📅 Step 3: Slot selection required...');
+      console.log('⚠️  Browser is open - please select a delivery slot manually');
+      console.log('⏳ Waiting for you to select and confirm slot...');
+      
+      // Wait for user to select slot (URL will change when they continue)
+      let slotConfirmed = false;
+      for (let i = 0; i < 60; i++) {
+        await page.waitForTimeout(5000);
+        const newUrl = page.url();
+        if (!newUrl.includes('slot') || newUrl.includes('checkout') || newUrl.includes('payment')) {
+          slotConfirmed = true;
+          break;
+        }
+      }
+      
+      if (!slotConfirmed) {
+        throw new Error('Slot selection timeout - no slot was confirmed');
+      }
+      
+      console.log('✅ Slot confirmed');
+    }
     
-    console.log(`✅ Order placed: ${orderId}`);
+    // Now at payment/final checkout page
+    console.log('\n💳 Step 4: At payment page...');
+    console.log('⏳ Waiting for page to load...');
+    await page.waitForTimeout(3000);
     
-    await page.screenshot({ path: '/tmp/sainsburys-order-confirmation.png', fullPage: true });
+    const finalPageText = await page.textContent('body');
+    const finalTotalMatch = finalPageText?.match(/Total[:\s]*£(\d+\.?\d*)/i);
+    const finalTotal = finalTotalMatch ? parseFloat(finalTotalMatch[1]) : total;
+    
+    const deliveryCostMatch = finalPageText?.match(/Delivery[:\s]*£(\d+\.?\d*)/i);
+    const deliveryCost = deliveryCostMatch ? parseFloat(deliveryCostMatch[1]) : 0;
+    
+    await page.screenshot({ path: '/tmp/checkout-payment-page.png', fullPage: true });
+    
+    console.log('\n📊 Order Summary:');
+    console.log(`├─ Items total: £${total}`);
+    console.log(`├─ Delivery: £${deliveryCost}`);
+    console.log(`└─ Total: £${finalTotal}`);
+    
+    console.log('\n🛑 PAYMENT REQUIRED');
+    console.log('╔═══════════════════════════════════════════╗');
+    console.log('║  THIS CLI DOES NOT HANDLE PAYMENT        ║');
+    console.log('║  Complete payment manually in browser     ║');
+    console.log('║  OR use saved payment method if prompted  ║');
+    console.log('╚═══════════════════════════════════════════╝');
+    
+    console.log('\n⏳ Keeping browser open for 5 minutes...');
+    console.log('   Close this terminal to cancel');
+    console.log('   Complete payment in browser to finish order\n');
+    
+    // Wait for user to complete payment
+    await page.waitForTimeout(300000); // 5 minutes
+    
+    // Check if order was completed
+    const finalUrl = page.url();
+    if (finalUrl.includes('confirmation') || finalUrl.includes('complete')) {
+      const orderIdMatch = await page.textContent('body');
+      const orderId = orderIdMatch?.match(/Order\s+(?:ID|number)[:\s]*(\w+)/i)?.[1] || 'UNKNOWN';
+      
+      return {
+        order_id: orderId,
+        total: finalTotal,
+        delivery_cost: deliveryCost,
+        items_count: 0,
+        status: 'completed'
+      };
+    }
     
     return {
-      order_id: orderId,
-      total,
-      slot_confirmed: true,
-      payment_status: 'completed'
+      order_id: 'PENDING',
+      total: finalTotal,
+      delivery_cost: deliveryCost,
+      items_count: 0,
+      status: 'payment_required',
+      payment_url: page.url()
     };
     
   } finally {
-    await page.waitForTimeout(3000);
     await browser.close();
   }
 }

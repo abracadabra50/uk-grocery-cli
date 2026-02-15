@@ -222,9 +222,9 @@ export class SainsburysProvider implements GroceryProvider {
   }
 
   async getDeliverySlots(): Promise<DeliverySlot[]> {
-    // Use browser automation to get slots
+    // Use browser automation (headless) to get slots
     const { getSlots } = await import('../browser/slots');
-    const slots = await getSlots();
+    const slots = await getSlots(true); // headless mode
     
     return slots.map(s => ({
       slot_id: s.slot_id,
@@ -238,7 +238,7 @@ export class SainsburysProvider implements GroceryProvider {
 
   async bookSlot(slotId: string): Promise<void> {
     const { bookSlot } = await import('../browser/slots');
-    await bookSlot(slotId);
+    await bookSlot(slotId, false); // Show browser for booking
   }
 
   async checkout(dryRun: boolean = false): Promise<Order> {
@@ -247,7 +247,7 @@ export class SainsburysProvider implements GroceryProvider {
     
     return {
       order_id: result.order_id,
-      status: result.payment_status,
+      status: result.status,
       total: result.total,
       items: []
     };
