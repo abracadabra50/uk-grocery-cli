@@ -23,9 +23,9 @@ If you're building AI agents that need to interact with UK grocery stores, you k
 
 But grocery websites are standardized at the concept level. Every store has search, basket, checkout, delivery slots. You can write one interface that works for all of them.
 
-**UK Grocery CLI is that interface.** One command-line tool that gives your AI agent access to every major UK supermarket. Multi-provider architecture with a unified API. Your agent calls `groc search "milk"` and it works whether you're shopping at Sainsbury's, Ocado, or Tesco.
+**UK Grocery CLI is that interface.** Multi-provider architecture with a unified API. Your agent calls `groc search "milk"` and it works whether you're shopping at Sainsbury's or Ocado. Adding Tesco, Asda, Morrisons is just implementing the same interface.
 
-At [Anon](https://anon.com) this approach replaced per-store integrations with a single grocery abstraction that now handles thousands of orders across multiple providers.
+Built for agent frameworks like [OpenClaw](https://github.com/claw-labs/openclaw), Pi, Claude Desktop MCP. Works with any agent that can shell out to a CLI. Your agent handles the intelligence (meal planning, budget optimization, dietary preferences). The CLI handles the grunt work (authentication, API calls, basket state).
 
 ## Supported Supermarkets
 
