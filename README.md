@@ -42,34 +42,61 @@ Built for agent frameworks like [OpenClaw](https://github.com/claw-labs/openclaw
 ### Installation
 
 ```bash
-npm install -g uk-grocery-cli
+# Clone the repository
+git clone https://github.com/abracadabra50/uk-grocery-cli.git
+cd uk-grocery-cli
+
+# Install dependencies
+npm install
+
+# Install Playwright for authentication
+npx playwright install chromium
+
+# Optional: Link globally to use 'groc' command anywhere
+npm link
 ```
 
-### Login
+### First Time Setup
 
 ```bash
-groc --provider sainsburys login --email you@email.com --password yourpass
+# Login to Sainsbury's (saves session to ~/.sainsburys/session.json)
+npm run sb login --email YOUR_EMAIL --password YOUR_PASSWORD
+
+# Or if installed globally:
+groc --provider sainsburys login --email YOUR_EMAIL --password YOUR_PASSWORD
+
+# Test it works
+npm run sb search "milk"
 ```
 
-Session saves to `~/.sainsburys/session.json` and auto-refreshes.
-
-### Shop
+### Basic Usage
 
 ```bash
 # Search for products
-groc --provider sainsburys search "organic milk"
+npm run sb search "organic milk"
 
 # Add to basket
-groc --provider sainsburys add 357937 --qty 2
+npm run sb add 357937 --qty 2
 
 # View basket
-groc --provider sainsburys basket
+npm run sb basket
 
 # Book delivery and checkout
-groc --provider sainsburys slots
-groc --provider sainsburys book <slot-id>
-groc --provider sainsburys checkout
+npm run sb slots
+npm run sb book <slot-id>
+npm run sb checkout
 ```
+
+### For AI Agents
+
+```bash
+# Agent calls via bash:
+cd /path/to/uk-grocery-cli && npm run sb search "chicken breast" --json
+cd /path/to/uk-grocery-cli && npm run sb add 357937 --qty 2
+cd /path/to/uk-grocery-cli && npm run sb basket --json
+```
+
+See [SKILL.md](SKILL.md) for complete agent integration guide.
 
 ## How It Works
 
