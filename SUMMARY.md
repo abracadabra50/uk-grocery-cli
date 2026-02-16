@@ -248,7 +248,7 @@ sb orders             # View order history
 cd /scratch/sainsburys-cli
 
 # Search for milk
-npm run sb search "milk"
+npm run groc search "milk"
 
 # Output:
 # 📋 Found 24 results
@@ -263,10 +263,10 @@ npm run sb search "milk"
 # ...
 
 # View categories
-npm run sb categories
+npm run groc categories
 
 # Get product details
-npm run sb product 357937
+npm run groc product 357937
 
 # All working perfectly!
 ```
@@ -358,14 +358,14 @@ sainsburys-cli/
 ### Immediate (Today)
 1. **Test with your credentials**
    ```bash
-   npm run sb login --email z.ashraf@icloud.com --password Elias123$$
-   npm run sb basket
+   npm run groc login --email YOUR_EMAIL --password YOUR_PASSWORD
+   npm run groc basket
    ```
 
 2. **Try searching for your regular items**
    ```bash
-   npm run sb search "bread"
-   npm run sb search "eggs"
+   npm run groc search "bread"
+   npm run groc search "eggs"
    ```
 
 ### Short Term (This Week)
@@ -377,7 +377,7 @@ sainsburys-cli/
 
 2. **Test delivery slots**
    ```bash
-   npm run sb slots --json
+   npm run groc slots --json
    ```
 
 ### Medium Term (Next Week)
