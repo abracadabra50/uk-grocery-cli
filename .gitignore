@@ -11,6 +11,7 @@ dist/
 *.js
 *.js.map
 !jest.config.js
+!setup.js
 
 # IDE
 .vscode/
@@ -30,3 +31,10 @@ coverage/
 *.tmp
 tmp/
 temp/
+
+# Debug scripts (development only)
+capture-*.js
+test-*.js
+discover-*.js
+extract-*.js
+network-*.js

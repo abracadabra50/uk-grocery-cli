@@ -11,8 +11,12 @@ const SESSION_FILE = path.join(os.homedir(), '.sainsburys', 'session.json');
 export class SainsburysProvider implements GroceryProvider {
   readonly name = 'sainsburys';
   private client: AxiosInstance;
+  private storeNumber: string;
 
   constructor() {
+    // Store number can be configured via environment variable
+    // Default to '0560' if not set
+    this.storeNumber = process.env.SAINSBURYS_STORE_NUMBER || '0560';
     this.client = axios.create({
       baseURL: API_BASE,
       headers: {
@@ -140,7 +144,7 @@ export class SainsburysProvider implements GroceryProvider {
     const response = await this.client.get('/basket/v2/basket', {
       params: {
         pick_time: pickTime,
-        store_number: '0560',
+        store_number: this.storeNumber,
         slot_booked: 'false'
       }
     });
@@ -173,7 +177,7 @@ export class SainsburysProvider implements GroceryProvider {
     }, {
       params: {
         pick_time: pickTime,
-        store_number: '0560',  // default store
+        store_number: this.storeNumber,
         slot_booked: 'false'
       }
     });
@@ -203,7 +207,7 @@ export class SainsburysProvider implements GroceryProvider {
     }, {
       params: {
         pick_time: pickTime,
-        store_number: '0560',
+        store_number: this.storeNumber,
         slot_booked: 'false'
       }
     });

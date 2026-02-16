@@ -2,9 +2,11 @@
   "name": "uk-grocery-cli",
   "version": "2.0.0",
   "description": "Multi-supermarket grocery CLI for UK. Sainsbury's, Ocado, and more. Built for AI agents.",
+  "type": "module",
   "main": "dist/cli.js",
   "bin": {
-    "groc": "./dist/cli.js"
+    "groc": "./dist/cli.js",
+    "groc-mcp": "./dist/mcp-server.js"
   },
   "scripts": {
     "build": "tsc",
@@ -21,23 +23,27 @@
     "shopping",
     "automation",
     "ai-agent",
-    "cli"
+    "cli",
+    "mcp",
+    "model-context-protocol",
+    "claude-desktop"
   ],
-  "author": "zish",
+  "author": "Zishan Ashraf",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/abracadabra50/uk-grocery-cli"
   },
   "dependencies": {
-    "commander": "^11.0.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "axios": "^1.6.0",
     "chalk": "^4.1.2",
+    "commander": "^11.0.0",
     "playwright": "^1.40.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "ts-node": "^10.9.0"
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
   }
 }
