@@ -19,11 +19,13 @@ Your AI agent can now search products, manage baskets, book delivery, and checko
 
 ## Why
 
-If you're building AI agents that need to interact with UK grocery stores, you know the pain. Every supermarket has a different API, different authentication flow, different basket format. Traditional automation means writing a dedicated integration for each store. Hardcoded endpoints, brittle session management, everything breaks when they ship an update.
+If you're building AI agents for the agentic era, there's a gap: **UK supermarkets offer zero APIs.**
 
-But grocery websites are standardized at the concept level. Every store has search, basket, checkout, delivery slots. You can write one interface that works for all of them.
+Sainsbury's, Ocado, Tesco, Asda, Morrisons — none of them provide developer APIs. No OAuth, no REST endpoints, no webhooks. If you want your agent to shop for groceries, there's no official way to do it.
 
-**UK Grocery CLI is that interface.** Multi-provider architecture with a unified API. Your agent calls `groc search "milk"` and it works whether you're shopping at Sainsbury's or Ocado. Adding Tesco, Asda, Morrisons is just implementing the same interface.
+But agents need to eat. Meal planning, auto-reordering, budget optimization — these are perfect agent workflows. The infrastructure just doesn't exist.
+
+**UK Grocery CLI closes that gap.** Reverse-engineered integrations that give your agent a unified command-line interface to every major UK supermarket. Your agent calls `groc search "milk"` and it works whether you're shopping at Sainsbury's or Ocado.
 
 Built for agent frameworks like [OpenClaw](https://github.com/claw-labs/openclaw), Pi, Claude Desktop MCP. Works with any agent that can shell out to a CLI. Your agent handles the intelligence (meal planning, budget optimization, dietary preferences). The CLI handles the grunt work (authentication, API calls, basket state).
 
