@@ -3,7 +3,7 @@
 ## Try It Now (30 seconds)
 
 ```bash
-cd /Users/zish/pi-slack-agent/data/C0AFWMC74UQ/scratch/sainsburys-cli
+cd /path/to/uk-grocery-cli
 
 # Search for milk
 npm run sb search "milk"
