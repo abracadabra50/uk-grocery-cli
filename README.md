@@ -392,17 +392,41 @@ Open an issue or PR.
 - 🔜 Asda & Morrisons providers
 - 🔜 Nutritional data API
 - 🔜 Recipe database integration
-- 🔜 MCP server wrapper for Claude Desktop
+
+### v3.0 (Q3 2026)
+- 🔜 MCP server implementation for Claude Desktop
+- 🔜 Model Context Protocol integration
+- 🔜 Native Claude app support
 
 ## License
 
 MIT - Free to use, modify, distribute.
 
-## Legal
+## Legal & Usage
 
-This tool is for personal use and agent development. Uses public APIs and standard authentication methods. Users are responsible for complying with each supermarket's terms of service.
+**Personal Use Only**
 
-Not affiliated with Sainsbury's, Ocado, Tesco, Asda, or Morrisons.
+This tool is designed for personal grocery shopping automation and agent development. It is not intended for:
+- Commercial scraping or data collection
+- Reselling grocery data
+- Automated bulk ordering for businesses
+- Any use that violates supermarket terms of service
+
+**How It Works**
+
+The CLI uses your personal supermarket account credentials. You authenticate once (just like logging into the website), and the CLI uses your session to place orders on your behalf. This is functionally equivalent to using the website, just via command line instead of a browser.
+
+**Your Responsibility**
+
+By using this tool, you agree to:
+- Use it only for your personal grocery shopping
+- Comply with each supermarket's terms of service
+- Not abuse rate limits or cause disruption
+- Not use it for commercial purposes
+
+**No Affiliation**
+
+This project is not affiliated with, endorsed by, or sponsored by Sainsbury's, Ocado, Tesco, Asda, Morrisons, or any other supermarket chain. All trademarks are property of their respective owners.
 
 ---
 
