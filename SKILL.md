@@ -48,11 +48,11 @@ npx playwright install chromium  # For authentication
 
 ```bash
 # Login (saves session to ~/.sainsburys/session.json)
-npm run sb login --email USER@EMAIL.COM --password PASSWORD
+npm run groc login --email USER@EMAIL.COM --password PASSWORD
 
 # Test it works
-npm run sb search "milk"
-npm run sb basket
+npm run groc search "milk"
+npm run groc basket
 ```
 
 ### Agent Usage
@@ -60,10 +60,10 @@ npm run sb basket
 Agents call commands via bash:
 
 ```bash
-cd {baseDir} && npm run sb search "chicken breast"
-cd {baseDir} && npm run sb add 357937 --qty 2
-cd {baseDir} && npm run sb basket
-cd {baseDir} && npm run sb checkout
+cd {baseDir} && npm run groc search "chicken breast"
+cd {baseDir} && npm run groc add 357937 --qty 2
+cd {baseDir} && npm run groc basket
+cd {baseDir} && npm run groc checkout
 ```
 
 ---
@@ -74,67 +74,67 @@ cd {baseDir} && npm run sb checkout
 
 ```bash
 # Search products
-npm run sb search "milk"
-npm run sb search "organic eggs" --limit 10
-npm run sb search "bread" --json
+npm run groc search "milk"
+npm run groc search "organic eggs" --limit 10
+npm run groc search "bread" --json
 
 # Browse categories
-npm run sb categories
-npm run sb categories --json
+npm run groc categories
+npm run groc categories --json
 
 # Product details
-npm run sb product 357937
-npm run sb product 357937 --json
+npm run groc product 357937
+npm run groc product 357937 --json
 ```
 
 ### Basket Management
 
 ```bash
 # View basket
-npm run sb basket
-npm run sb basket --json
+npm run groc basket
+npm run groc basket --json
 
 # Add to basket
-npm run sb add <product-id> --qty 2
+npm run groc add <product-id> --qty 2
 
 # Update quantity
-npm run sb update <item-id> 3
+npm run groc update <item-id> 3
 
 # Remove item
-npm run sb remove <item-id>
+npm run groc remove <item-id>
 
 # Clear basket
-npm run sb clear --force
+npm run groc clear --force
 ```
 
 ### Delivery & Checkout
 
 ```bash
 # View delivery slots
-npm run sb slots
-npm run sb slots --json
+npm run groc slots
+npm run groc slots --json
 
 # Book a slot
-npm run sb book <slot-id>
+npm run groc book <slot-id>
 
 # Checkout (dry run to preview)
-npm run sb checkout --dry-run
+npm run groc checkout --dry-run
 
 # Complete order
-npm run sb checkout
+npm run groc checkout
 
 # Order history
-npm run sb orders
+npm run groc orders
 ```
 
 ### Authentication
 
 ```bash
 # Login
-npm run sb login --email EMAIL --password PASS
+npm run groc login --email EMAIL --password PASS
 
 # Logout
-npm run sb logout
+npm run groc logout
 
 # Check session
 cat ~/.sainsburys/session.json
@@ -162,7 +162,7 @@ Agent:
 
 For each ingredient:
 ```bash
-npm run sb search "{ingredient}" --json
+npm run groc search "{ingredient}" --json
 ```
 
 Agent picks best match by price/size/preference.
@@ -170,7 +170,7 @@ Agent picks best match by price/size/preference.
 ### Step 3: Agent Builds Order (CLI)
 
 ```bash
-npm run sb add {product_id} --qty {quantity}
+npm run groc add {product_id} --qty {quantity}
 ```
 
 Repeat for all ingredients.
@@ -179,7 +179,7 @@ Repeat for all ingredients.
 
 Show basket to user:
 ```bash
-npm run sb basket --json
+npm run groc basket --json
 ```
 
 Agent can swap/adjust/remove based on user feedback.
@@ -188,13 +188,13 @@ Agent can swap/adjust/remove based on user feedback.
 
 ```bash
 # Show slots
-npm run sb slots --json
+npm run groc slots --json
 
 # Book slot
-npm run sb book {slot_id}
+npm run groc book {slot_id}
 
 # Complete order
-npm run sb checkout
+npm run groc checkout
 ```
 
 **Your agent handles:** meal suggestions, recipe parsing, ingredient matching  
@@ -361,7 +361,7 @@ See `src/api/client.ts` for full implementation.
 ### Authentication Errors
 ```bash
 # 401/403 - Session expired
-npm run sb login --email EMAIL --password PASS
+npm run groc login --email EMAIL --password PASS
 ```
 
 ### Product Not Found
@@ -387,7 +387,7 @@ Sessions auto-save to `~/.sainsburys/session.json`
 
 **Session expires:** 7 days  
 **Auto-refresh:** On CLI commands  
-**Manual refresh:** `npm run sb login`
+**Manual refresh:** `npm run groc login`
 
 Check session:
 ```bash
@@ -402,7 +402,7 @@ cat ~/.sainsburys/session.json | jq .expiresAt
 
 ```typescript
 // Add skill to skills directory
-await bash(`cd ${skillDir}/sainsburys-cli && npm run sb search "milk"`);
+await bash(`cd ${skillDir}/sainsburys-cli && npm run groc search "milk"`);
 
 // Parse JSON response
 const results = JSON.parse(stdout);
@@ -415,7 +415,7 @@ results.products.forEach(p => {
 
 ```typescript
 // Use in meal-planning channel
-await bash(`cd /path/to/sainsburys-cli && npm run sb basket --json`);
+await bash(`cd /path/to/sainsburys-cli && npm run groc basket --json`);
 
 // Send Block Kit to Slack
 await sendBlocks(basketBlocks);
@@ -440,7 +440,7 @@ Track spend across orders:
 
 ```bash
 # Get basket total
-npm run sb basket --json | jq '.trolley.trolley_details.total_cost'
+npm run groc basket --json | jq '.trolley.trolley_details.total_cost'
 
 # Save to tracking file
 echo "$(date),${total}" >> spending.csv

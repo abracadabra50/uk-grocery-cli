@@ -60,40 +60,40 @@ npm link
 
 ```bash
 # Login to Sainsbury's (saves session to ~/.sainsburys/session.json)
-npm run sb login --email YOUR_EMAIL --password YOUR_PASSWORD
+npm run groc login --email YOUR_EMAIL --password YOUR_PASSWORD
 
 # Or if installed globally:
 groc --provider sainsburys login --email YOUR_EMAIL --password YOUR_PASSWORD
 
 # Test it works
-npm run sb search "milk"
+npm run groc search "milk"
 ```
 
 ### Basic Usage
 
 ```bash
 # Search for products
-npm run sb search "organic milk"
+npm run groc search "organic milk"
 
 # Add to basket
-npm run sb add 357937 --qty 2
+npm run groc add 357937 --qty 2
 
 # View basket
-npm run sb basket
+npm run groc basket
 
 # Book delivery and checkout
-npm run sb slots
-npm run sb book <slot-id>
-npm run sb checkout
+npm run groc slots
+npm run groc book <slot-id>
+npm run groc checkout
 ```
 
 ### For AI Agents
 
 ```bash
 # Agent calls via bash:
-cd /path/to/uk-grocery-cli && npm run sb search "chicken breast" --json
-cd /path/to/uk-grocery-cli && npm run sb add 357937 --qty 2
-cd /path/to/uk-grocery-cli && npm run sb basket --json
+cd /path/to/uk-grocery-cli && npm run groc search "chicken breast" --json
+cd /path/to/uk-grocery-cli && npm run groc add 357937 --qty 2
+cd /path/to/uk-grocery-cli && npm run groc basket --json
 ```
 
 See [SKILL.md](SKILL.md) for complete agent integration guide.
