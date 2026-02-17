@@ -5,10 +5,10 @@ license: MIT
 compatibility: Node.js 18+, TypeScript, Playwright for auth. UK only (Sainsbury's delivery areas).
 metadata:
   author: zish
-  version: "1.0.0"
-  repository: https://github.com/yourusername/sainsburys-cli
-  tags: [groceries, sainsburys, uk, shopping, automation, cli, agent-tool]
-allowed-tools: Bash({baseDir}/node:*), Bash(npm:run:sb:*)
+  version: "2.0.0"
+  repository: https://github.com/abracadabra50/uk-grocery-cli
+  tags: [groceries, sainsburys, ocado, uk, shopping, automation, cli, agent-tool]
+allowed-tools: Bash({baseDir}/node:*), Bash(npm:run:groc:*)
 ---
 
 # Sainsbury's Groceries Skill
@@ -335,7 +335,7 @@ GET  /groceries-api/gol-services/slot/v1/slot/reservation
 POST /groceries-api/gol-services/checkout/v1/checkout
 ```
 
-See `src/api/client.ts` for full implementation.
+See `src/providers/` for full implementation.
 
 ---
 
@@ -344,10 +344,14 @@ See `src/api/client.ts` for full implementation.
 ```
 {baseDir}/
 ├── src/
-│   ├── api/client.ts              # REST API client
+│   ├── providers/
+│   │   ├── types.ts               # Common interfaces
+│   │   ├── sainsburys.ts          # Sainsbury's provider
+│   │   ├── ocado.ts              # Ocado provider
+│   │   └── index.ts              # Provider factory
 │   ├── auth/login.ts              # Playwright auth
-│   ├── commands/basket.ts         # Basket operations
-│   └── cli-complete.ts            # Main CLI
+│   ├── browser/                   # Browser automation (slots, checkout)
+│   └── cli.ts                     # Main CLI entry point
 ├── SKILL.md                       # This file
 ├── AGENTS.md                      # Agent integration guide
 ├── README.md                      # User documentation

@@ -46,11 +46,11 @@ export class OcadoProvider implements GroceryProvider {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(SESSION_FILE, JSON.stringify({ 
-      cookies, 
+    fs.writeFileSync(SESSION_FILE, JSON.stringify({
+      cookies,
       regionId: regionId || this.regionId,
-      savedAt: new Date().toISOString() 
-    }));
+      savedAt: new Date().toISOString()
+    }), { mode: 0o600 });
   }
 
   async login(email: string, password: string): Promise<void> {
@@ -115,7 +115,7 @@ export class OcadoProvider implements GroceryProvider {
     // Alternative search using suggestions endpoint
     const params: any = {
       searchTerm: query,
-      limit: options?.limit || 20000,
+      limit: options?.limit || 24,
       regionId: this.regionId
     };
 
@@ -196,9 +196,7 @@ export class OcadoProvider implements GroceryProvider {
 
   async clearBasket(): Promise<void> {
     const basket = await this.getBasket();
-    for (const item of basket.items) {
-      await this.removeFromBasket(item.item_id);
-    }
+    await Promise.all(basket.items.map(item => this.removeFromBasket(item.item_id)));
   }
 
   async getDeliverySlots(): Promise<DeliverySlot[]> {

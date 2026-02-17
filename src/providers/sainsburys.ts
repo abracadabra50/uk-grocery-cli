@@ -62,7 +62,7 @@ export class SainsburysProvider implements GroceryProvider {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(SESSION_FILE, JSON.stringify({ cookies, savedAt: new Date().toISOString() }));
+    fs.writeFileSync(SESSION_FILE, JSON.stringify({ cookies, savedAt: new Date().toISOString() }), { mode: 0o600 });
   }
 
   async login(email: string, password: string): Promise<void> {

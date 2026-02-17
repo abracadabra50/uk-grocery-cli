@@ -27,13 +27,13 @@ cp -r sainsburys-cli /path/to/agent/skills/
 
 ```typescript
 // From your agent code
-await bash("cd skills/sainsburys-cli && npm run sb search 'milk'");
+await bash("cd skills/sainsburys-cli && npm run groc search 'milk'");
 ```
 
 ### 3. Parse JSON Responses
 
 ```typescript
-const stdout = await bash("cd skills/sainsburys-cli && npm run sb search 'milk' --json");
+const stdout = await bash("cd skills/sainsburys-cli && npm run groc search 'milk' --json");
 const results = JSON.parse(stdout);
 
 results.products.forEach(product => {
@@ -57,8 +57,8 @@ license: MIT
 compatibility: Node.js 18+, TypeScript, Playwright
 metadata:
   author: zish
-  version: "1.0.0"
-allowed-tools: Bash({baseDir}/node:*), Bash(npm:run:sb:*)
+  version: "2.0.0"
+allowed-tools: Bash({baseDir}/node:*), Bash(npm:run:groc:*)
 ---
 ```
 
@@ -113,7 +113,7 @@ async function startMealPlanning() {
   
   // 5. Search products
   for (const ingredient of ingredients) {
-    const result = await bash(`cd skills/sainsburys-cli && npm run sb search "${ingredient}" --json`);
+    const result = await bash(`cd skills/sainsburys-cli && npm run groc search "${ingredient}" --json`);
     const products = JSON.parse(result);
     const best = pickBestMatch(products, ingredient);
     shoppingList.push(best);
@@ -123,12 +123,12 @@ async function startMealPlanning() {
   await showShoppingList(shoppingList);
   if (await confirm("Add to basket?")) {
     for (const item of shoppingList) {
-      await bash(`cd skills/sainsburys-cli && npm run sb add ${item.product_uid} --qty ${item.quantity}`);
+      await bash(`cd skills/sainsburys-cli && npm run groc add ${item.product_uid} --qty ${item.quantity}`);
     }
   }
   
   // 7. Checkout
-  await bash(`cd skills/sainsburys-cli && npm run sb basket --json`);
+  await bash(`cd skills/sainsburys-cli && npm run groc basket --json`);
   // ... show basket, book slot, checkout
 }
 ```
@@ -338,7 +338,7 @@ const preferences = {
 ```typescript
 async function searchWithPreferences(query, preferences) {
   // Search Sainsbury's
-  const result = await bash(`cd skills/sainsburys-cli && npm run sb search "${query}" --json`);
+  const result = await bash(`cd skills/sainsburys-cli && npm run groc search "${query}" --json`);
   const products = JSON.parse(result);
   
   // Filter based on preferences
@@ -416,13 +416,13 @@ async function generateShoppingList(meals, preferences) {
 
 ```typescript
 try {
-  await bash("cd skills/sainsburys-cli && npm run sb basket --json");
+  await bash("cd skills/sainsburys-cli && npm run groc basket --json");
 } catch (error) {
   if (error.includes("401") || error.includes("403")) {
     await say("Session expired. Let me log you in again...");
-    await bash(`cd skills/sainsburys-cli && npm run sb login --email ${EMAIL} --password ${PASSWORD}`);
+    await bash(`cd skills/sainsburys-cli && npm run groc login --email ${EMAIL} --password ${PASSWORD}`);
     // Retry
-    await bash("cd skills/sainsburys-cli && npm run sb basket --json");
+    await bash("cd skills/sainsburys-cli && npm run groc basket --json");
   }
 }
 ```
@@ -430,7 +430,7 @@ try {
 ### Product Not Found
 
 ```typescript
-const result = await bash(`cd skills/sainsburys-cli && npm run sb search "${ingredient}" --json`);
+const result = await bash(`cd skills/sainsburys-cli && npm run groc search "${ingredient}" --json`);
 const products = JSON.parse(result);
 
 if (products.products.length === 0) {
@@ -466,7 +466,7 @@ async function searchProduct(query) {
     return searchCache.get(query);
   }
   
-  const result = await bash(`cd skills/sainsburys-cli && npm run sb search "${query}" --json`);
+  const result = await bash(`cd skills/sainsburys-cli && npm run groc search "${query}" --json`);
   const products = JSON.parse(result);
   
   searchCache.set(query, products);
@@ -481,13 +481,13 @@ async function searchProduct(query) {
 ```typescript
 // Instead of:
 for (const item of items) {
-  await bash(`npm run sb add ${item.id} --qty ${item.qty}`);
+  await bash(`npm run groc add ${item.id} --qty ${item.qty}`);
 }
 
 // Do:
 await Promise.all(
   items.map(item => 
-    bash(`npm run sb add ${item.id} --qty ${item.qty}`)
+    bash(`npm run groc add ${item.id} --qty ${item.qty}`)
   )
 );
 ```
@@ -559,15 +559,15 @@ server.setRequestHandler("tools/call", async (request) => {
 
 ```bash
 cd skills/sainsburys-cli
-npm run sb search "test"
-npm run sb basket
+npm run groc search "test"
+npm run groc basket
 ```
 
 ### 2. Test From Agent
 
 ```typescript
 // In your agent code
-const result = await bash("cd skills/sainsburys-cli && npm run sb search 'milk' --json");
+const result = await bash("cd skills/sainsburys-cli && npm run groc search 'milk' --json");
 console.log(JSON.parse(result));
 ```
 
@@ -575,15 +575,15 @@ console.log(JSON.parse(result));
 
 ```typescript
 // Login
-await bash("cd skills/sainsburys-cli && npm run sb login --email test@example.com --password test123");
+await bash("cd skills/sainsburys-cli && npm run groc login --email test@example.com --password test123");
 
 // Search and add
-const products = await bash("cd skills/sainsburys-cli && npm run sb search 'milk' --json");
+const products = await bash("cd skills/sainsburys-cli && npm run groc search 'milk' --json");
 const firstProduct = JSON.parse(products).products[0];
-await bash(`cd skills/sainsburys-cli && npm run sb add ${firstProduct.product_uid} --qty 2`);
+await bash(`cd skills/sainsburys-cli && npm run groc add ${firstProduct.product_uid} --qty 2`);
 
 // View basket
-const basket = await bash("cd skills/sainsburys-cli && npm run sb basket --json");
+const basket = await bash("cd skills/sainsburys-cli && npm run groc basket --json");
 console.log(JSON.parse(basket));
 ```
 
@@ -614,7 +614,7 @@ agent:
 // data/skills/sainsburys-groceries/SKILL.md
 
 // In meal-planning channel
-await bash("cd skills/sainsburys-groceries && npm run sb search 'milk' --json");
+await bash("cd skills/sainsburys-groceries && npm run groc search 'milk' --json");
 
 // Show results with Block Kit
 await sendBlocks(productBlocks);

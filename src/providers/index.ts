@@ -32,13 +32,13 @@ export class ProviderFactory {
 }
 
 // Helper function for comparison across providers
-export async function compareProduct(query: string, providers?: ProviderName[]) {
+export async function compareProduct(query: string, providers?: ProviderName[], limit: number = 5) {
   const providerList = providers || ProviderFactory.getAvailableProviders();
   const results = await Promise.all(
     providerList.map(async (providerName) => {
       try {
         const provider = ProviderFactory.create(providerName);
-        const products = await provider.search(query, { limit: 5 });
+        const products = await provider.search(query, { limit });
         return { provider: providerName, products, error: null };
       } catch (error: any) {
         return { provider: providerName, products: [], error: error.message };
