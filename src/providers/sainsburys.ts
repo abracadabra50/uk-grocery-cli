@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
-import { GroceryProvider, Product, Basket, DeliverySlot, Order, SearchOptions, BasketItem } from './types';
+import { GroceryProvider, Product, Basket, DeliverySlot, Order, SearchOptions } from './types';
 import { login } from '../auth/login';
+import { USER_AGENT } from '../constants';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -20,7 +21,7 @@ export class SainsburysProvider implements GroceryProvider {
     this.client = axios.create({
       baseURL: API_BASE,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'User-Agent': USER_AGENT,
         'Accept': 'application/json',
       }
     });
@@ -288,6 +289,7 @@ export class SainsburysProvider implements GroceryProvider {
             }));
           }
         } catch (e) {
+          // Endpoint not available, try next one
           continue;
         }
       }

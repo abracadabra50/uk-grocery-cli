@@ -1,4 +1,5 @@
 import { chromium, Page } from 'playwright';
+import { USER_AGENT } from '../constants';
 import * as fs from 'fs';
 import * as os from 'os';
 
@@ -38,7 +39,7 @@ export async function checkout(dryRun: boolean = true): Promise<CheckoutResult> 
   });
   
   const page = await browser.newPage({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    userAgent: USER_AGENT,
     viewport: { width: 1920, height: 1080 }
   });
   
@@ -51,10 +52,12 @@ export async function checkout(dryRun: boolean = true): Promise<CheckoutResult> 
       timeout: 60000
     });
     
-    // Accept cookies
+    // Accept cookies if banner is present
     try {
       await page.click('#onetrust-accept-btn-handler', { timeout: 3000 });
-    } catch (e) {}
+    } catch (e) {
+      // Cookie banner not found or already dismissed
+    }
     
     await page.waitForTimeout(3000);
     

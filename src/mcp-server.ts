@@ -160,7 +160,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
-    const provider = ProviderFactory.create('sainsburys');
+    const providerName = (process.env.GROC_PROVIDER || 'sainsburys') as import('./providers/index.js').ProviderName;
+    const provider = ProviderFactory.create(providerName);
 
     // Search products
     if (name === 'grocery_search') {

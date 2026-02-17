@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { USER_AGENT } from '../constants';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -18,7 +19,7 @@ export async function login(email: string, password: string): Promise<SessionDat
   
   const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+    userAgent: USER_AGENT
   });
   
   const page = await context.newPage();

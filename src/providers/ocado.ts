@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
-import { GroceryProvider, Product, Basket, DeliverySlot, Order, SearchOptions, BasketItem } from './types';
+import { GroceryProvider, Product, Basket, DeliverySlot, Order, SearchOptions } from './types';
+import { USER_AGENT } from '../constants';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -16,7 +17,7 @@ export class OcadoProvider implements GroceryProvider {
     this.client = axios.create({
       baseURL: API_BASE,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'User-Agent': USER_AGENT,
         'Accept': 'application/json',
       }
     });
@@ -218,9 +219,19 @@ export class OcadoProvider implements GroceryProvider {
     });
   }
 
-  async checkout(): Promise<Order> {
+  async checkout(dryRun: boolean = false): Promise<Order> {
+    if (dryRun) {
+      const basket = await this.getBasket();
+      return {
+        order_id: 'DRY_RUN',
+        status: 'preview',
+        total: basket.total_cost,
+        items: []
+      };
+    }
+
     const response = await this.client.post('/checkout/v1/place-order');
-    
+
     return {
       order_id: response.data.orderId || response.data.id || 'unknown',
       status: response.data.status || 'placed',
@@ -258,6 +269,7 @@ export class OcadoProvider implements GroceryProvider {
             }));
           }
         } catch (e) {
+          // Endpoint not available, try next one
           continue;
         }
       }

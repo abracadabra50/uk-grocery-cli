@@ -1,4 +1,5 @@
 import { chromium, Page } from 'playwright';
+import { USER_AGENT } from '../constants';
 import * as fs from 'fs';
 import * as os from 'os';
 
@@ -29,25 +30,25 @@ export async function getSlots(headless: boolean = true): Promise<Slot[]> {
   });
   
   const page = await browser.newPage({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    userAgent: USER_AGENT,
     viewport: { width: 1920, height: 1080 }
   });
-  
+
   try {
     await loadSession(page);
-    
+
     // Navigate to slot selection
     await page.goto('https://www.sainsburys.co.uk/gol-ui/slotselection', {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-    
-    // Accept cookies
+
+    // Accept cookies if banner is present
     try {
       await page.click('#onetrust-accept-btn-handler', { timeout: 3000 });
       await page.waitForTimeout(1000);
     } catch (e) {
-      // No cookie banner
+      // Cookie banner not found or already dismissed
     }
     
     // Wait for page to load
@@ -87,7 +88,7 @@ export async function getSlots(headless: boolean = true): Promise<Slot[]> {
           });
         }
       } catch (e) {
-        // Skip this element
+        // Element may have been removed from DOM mid-iteration; skip it
       }
     }
     
@@ -117,22 +118,24 @@ export async function bookSlot(slotId: string, headless: boolean = false): Promi
   });
   
   const page = await browser.newPage({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    userAgent: USER_AGENT,
     viewport: { width: 1920, height: 1080 }
   });
-  
+
   try {
     await loadSession(page);
-    
+
     await page.goto('https://www.sainsburys.co.uk/gol-ui/slotselection', {
       waitUntil: 'domcontentloaded',
       timeout: 60000
     });
-    
-    // Accept cookies
+
+    // Accept cookies if banner is present
     try {
       await page.click('#onetrust-accept-btn-handler', { timeout: 3000 });
-    } catch (e) {}
+    } catch (e) {
+      // Cookie banner not found or already dismissed
+    }
     
     await page.waitForTimeout(5000);
     
