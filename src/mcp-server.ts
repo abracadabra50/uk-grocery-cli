@@ -20,7 +20,7 @@ import * as os from 'os';
 const server = new Server(
   {
     name: 'uk-grocery-cli',
-    version: '1.0.0',
+    version: '2.0.0',
   },
   {
     capabilities: {

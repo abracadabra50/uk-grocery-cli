@@ -10,7 +10,7 @@ const SESSION_FILE = path.join(os.homedir(), '.ocado', 'session.json');
 export class OcadoProvider implements GroceryProvider {
   readonly name = 'ocado';
   private client: AxiosInstance;
-  private regionId: string = '9138094d-f307-46aa-a62d-86c8bdaeb4b9'; // Default region
+  private regionId: string = process.env.OCADO_REGION_ID || '9138094d-f307-46aa-a62d-86c8bdaeb4b9';
 
   constructor() {
     this.client = axios.create({
