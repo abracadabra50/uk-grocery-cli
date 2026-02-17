@@ -8,8 +8,17 @@ const program = new Command();
 program
   .name('groc')
   .description('UK Grocery CLI - Multi-supermarket grocery automation')
-  .version('1.0.0')
+  .version('2.0.0')
   .option('-p, --provider <name>', 'Provider: sainsburys, ocado', 'sainsburys');
+
+// Parse a string as a positive integer, or throw
+function parsePositiveInt(value: string, name: string): number {
+  const n = parseInt(value, 10);
+  if (isNaN(n) || n < 1) {
+    throw new Error(`${name} must be a positive integer, got "${value}"`);
+  }
+  return n;
+}
 
 // Helper to get provider from options
 function getProvider(options: any) {
@@ -21,12 +30,18 @@ function getProvider(options: any) {
 program
   .command('login')
   .description('Login to supermarket account')
-  .requiredOption('-e, --email <email>', 'Email address')
-  .requiredOption('-p, --password <password>', 'Password')
+  .option('-e, --email <email>', 'Email address (or set GROC_EMAIL)')
+  .option('-p, --password <password>', 'Password (or set GROC_PASSWORD)')
   .action(async (options, cmd) => {
     try {
+      const email = options.email || process.env.GROC_EMAIL;
+      const password = options.password || process.env.GROC_PASSWORD;
+      if (!email || !password) {
+        console.error('❌ Email and password required. Use --email/--password or set GROC_EMAIL/GROC_PASSWORD.');
+        process.exit(1);
+      }
       const provider = getProvider(cmd.optsWithGlobals());
-      await provider.login(options.email, options.password);
+      await provider.login(email, password);
       console.log(`✅ Logged in to ${provider.name}`);
     } catch (error: any) {
       console.error('❌ Login failed:', error.message);
@@ -58,7 +73,7 @@ program
   .action(async (query, options, cmd) => {
     try {
       const provider = getProvider(cmd.optsWithGlobals());
-      const products = await provider.search(query, { limit: parseInt(options.limit) });
+      const products = await provider.search(query, { limit: parsePositiveInt(options.limit, 'limit') });
       
       if (options.json) {
         console.log(JSON.stringify({ products }, null, 2));
@@ -87,7 +102,8 @@ program
     try {
       console.log(`\n🔍 Comparing "${query}" across supermarkets...\n`);
       
-      const results = await compareProduct(query);
+      const limit = parsePositiveInt(options.limit, 'limit');
+      const results = await compareProduct(query, undefined, limit);
       
       if (options.json) {
         console.log(JSON.stringify(results, null, 2));
@@ -161,7 +177,7 @@ program
   .action(async (productId, options, cmd) => {
     try {
       const provider = getProvider(cmd.optsWithGlobals());
-      await provider.addToBasket(productId, parseInt(options.qty));
+      await provider.addToBasket(productId, parsePositiveInt(options.qty, 'qty'));
       console.log(`✅ Added to ${provider.name} basket`);
     } catch (error: any) {
       console.error('❌ Failed to add to basket:', error.message);
@@ -281,8 +297,8 @@ program
       
       console.log(`\n📦 ${provider.name.toUpperCase()} Order History\n`);
       
-      const limit = parseInt(options.limit);
-      const displayOrders = orders.slice(0, limit);
+      const orderLimit = parsePositiveInt(options.limit, 'limit');
+      const displayOrders = orders.slice(0, orderLimit);
       
       displayOrders.forEach((order, i) => {
         console.log(`${i + 1}. Order #${order.order_id}`);
@@ -300,8 +316,8 @@ program
         console.log();
       });
       
-      if (orders.length > limit) {
-        console.log(`Showing ${limit} of ${orders.length} orders. Use --limit to see more.\n`);
+      if (orders.length > orderLimit) {
+        console.log(`Showing ${orderLimit} of ${orders.length} orders. Use --limit to see more.\n`);
       }
     } catch (error: any) {
       console.error('❌ Failed to get orders:', error.message);

@@ -6,6 +6,7 @@ dist/
 # Session files
 *.session.json
 .sainsburys/
+.ocado/
 
 # Build artifacts
 *.js

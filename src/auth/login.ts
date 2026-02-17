@@ -166,7 +166,7 @@ export function saveSession(session: SessionData) {
     fs.mkdirSync(CONFIG_DIR, { recursive: true });
   }
   
-  fs.writeFileSync(SESSION_FILE, JSON.stringify(session, null, 2));
+  fs.writeFileSync(SESSION_FILE, JSON.stringify(session, null, 2), { mode: 0o600 });
   console.log(`💾 Session saved to ${SESSION_FILE}`);
 }
 
@@ -174,17 +174,23 @@ export function loadSession(): SessionData | null {
   if (!fs.existsSync(SESSION_FILE)) {
     return null;
   }
-  
-  const data = fs.readFileSync(SESSION_FILE, 'utf8');
-  const session: SessionData = JSON.parse(data);
-  
-  // Check if expired
-  if (new Date(session.expiresAt) < new Date()) {
-    console.log('⚠️  Session expired');
+
+  try {
+    const data = fs.readFileSync(SESSION_FILE, 'utf8');
+    const session: SessionData = JSON.parse(data);
+
+    // Check if expired
+    if (new Date(session.expiresAt) < new Date()) {
+      console.log('⚠️  Session expired');
+      return null;
+    }
+
+    return session;
+  } catch (error) {
+    console.log('⚠️  Corrupt session file, removing');
+    fs.unlinkSync(SESSION_FILE);
     return null;
   }
-  
-  return session;
 }
 
 export function getCookieString(session: SessionData): string {
