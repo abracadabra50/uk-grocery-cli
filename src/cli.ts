@@ -2,6 +2,7 @@
 
 import { Command } from 'commander';
 import { ProviderFactory, ProviderName, compareProduct } from './providers';
+import { TescoProvider } from './providers/tesco/index';
 
 const program = new Command();
 
@@ -9,7 +10,7 @@ program
   .name('groc')
   .description('UK Grocery CLI - Multi-supermarket grocery automation')
   .version('1.0.0')
-  .option('-p, --provider <name>', 'Provider: sainsburys, ocado', 'sainsburys');
+  .option('-p, --provider <name>', 'Provider: sainsburys, ocado, tesco', 'sainsburys');
 
 // Helper to get provider from options
 function getProvider(options: any) {
@@ -22,7 +23,7 @@ program
   .command('login')
   .description('Login to supermarket account')
   .requiredOption('-e, --email <email>', 'Email address')
-  .requiredOption('-p, --password <password>', 'Password')
+  .option('--password [password]', 'Password (omit to be prompted interactively)')
   .action(async (options, cmd) => {
     try {
       const provider = getProvider(cmd.optsWithGlobals());
@@ -311,6 +312,41 @@ program
     }
   });
 
+// Update basket item quantity
+program
+  .command('update <item-id> <quantity>')
+  .description('Update quantity of a basket item')
+  .action(async (itemId, quantity, options, cmd) => {
+    try {
+      const provider = getProvider((cmd as any).optsWithGlobals());
+      await provider.updateBasketItem(itemId, parseInt(quantity));
+      console.log(`✅ Updated item ${itemId} to qty ${quantity}`);
+    } catch (error: any) {
+      console.error('❌ Failed to update basket item:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Clear basket
+program
+  .command('clear')
+  .description('Clear all items from basket')
+  .option('--force', 'Skip confirmation prompt')
+  .action(async (options, cmd) => {
+    try {
+      if (!options.force) {
+        console.log('⚠️  Use --force to confirm clearing the basket');
+        process.exit(0);
+      }
+      const provider = getProvider(cmd.optsWithGlobals());
+      await provider.clearBasket();
+      console.log(`✅ Basket cleared`);
+    } catch (error: any) {
+      console.error('❌ Failed to clear basket:', error.message);
+      process.exit(1);
+    }
+  });
+
 // List providers
 program
   .command('providers')
@@ -322,6 +358,91 @@ program
       console.log(`  • ${p}`);
     });
     console.log();
+  });
+
+// ─────────────────────────────────────────────────────────
+// Tesco-specific commands
+// ─────────────────────────────────────────────────────────
+
+// Tesco: API discovery
+program
+  .command('discover')
+  .description('Tesco only — intercept network traffic to discover API endpoints')
+  .action(async (options, cmd) => {
+    const providerName = cmd.optsWithGlobals().provider;
+    if (providerName !== 'tesco') {
+      console.error('❌ The discover command is only available for --provider tesco');
+      process.exit(1);
+    }
+    try {
+      const { discover } = await import('./providers/tesco/discover');
+      await discover();
+    } catch (error: any) {
+      console.error('❌ Discovery failed:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Tesco: import session from Chrome cookie export
+program
+  .command('import-session')
+  .description('Tesco only — import cookies exported from Chrome as a session fallback')
+  .requiredOption('--file <path>', 'Path to cookies JSON file exported from Chrome DevTools')
+  .action(async (options, cmd) => {
+    const providerName = cmd.optsWithGlobals().provider;
+    if (providerName !== 'tesco') {
+      console.error('❌ The import-session command is only available for --provider tesco');
+      process.exit(1);
+    }
+    try {
+      const { importSession } = await import('./providers/tesco/import-session');
+      importSession(options.file);
+    } catch (error: any) {
+      console.error('❌ Session import failed:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Tesco: staples management
+program
+  .command('staples')
+  .description('Tesco only — view, update, or add your regular staples to basket')
+  .option('--update', 'Refresh staples from order history')
+  .option('--add', 'Add all staples to basket (skips items already present)')
+  .option('--json', 'Output as JSON')
+  .action(async (options, cmd) => {
+    const providerName = cmd.optsWithGlobals().provider;
+    if (providerName !== 'tesco') {
+      console.error('❌ The staples command is only available for --provider tesco');
+      process.exit(1);
+    }
+    try {
+      const { updateStaples, loadStaples, printStaples, addStaplesToBasket } =
+        await import('./providers/tesco/staples');
+
+      const provider = getProvider(cmd.optsWithGlobals()) as TescoProvider;
+      const api = provider.getAPI();
+
+      let staples = loadStaples();
+
+      if (options.update || staples.length === 0) {
+        staples = await updateStaples(api);
+      }
+
+      if (options.add) {
+        // Get current basket to skip already-added items
+        const basket = await provider.getBasket();
+        const alreadyAdded = new Set(basket.items.map(i => i.product_uid));
+        await addStaplesToBasket(provider, staples, alreadyAdded);
+        return;
+      }
+
+      printStaples(staples, options.json);
+
+    } catch (error: any) {
+      console.error('❌ Staples command failed:', error.message);
+      process.exit(1);
+    }
   });
 
 program.parse();

@@ -1,17 +1,20 @@
 import { GroceryProvider } from './types';
 import { SainsburysProvider } from './sainsburys';
 import { OcadoProvider } from './ocado';
+import { TescoProvider } from './tesco/index';
 
 export * from './types';
 export { SainsburysProvider } from './sainsburys';
 export { OcadoProvider } from './ocado';
+export { TescoProvider } from './tesco/index';
 
-export type ProviderName = 'sainsburys' | 'ocado';
+export type ProviderName = 'sainsburys' | 'ocado' | 'tesco';
 
 export class ProviderFactory {
   private static providers = new Map<ProviderName, () => GroceryProvider>([
     ['sainsburys', () => new SainsburysProvider()],
     ['ocado', () => new OcadoProvider()],
+    ['tesco', () => new TescoProvider()],
   ]);
 
   static create(name: ProviderName): GroceryProvider {

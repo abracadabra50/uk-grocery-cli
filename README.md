@@ -32,8 +32,8 @@ Built for agent frameworks like [OpenClaw](https://github.com/claw-labs/openclaw
 ## Supported Supermarkets
 
 - ✅ **Sainsbury's** - UK-wide delivery, full API coverage
-- ✅ **Ocado** - London & South England, complete integration  
-- 🔜 **Tesco** - Coming soon (API reverse-engineering in progress)
+- ✅ **Ocado** - London & South England, complete integration
+- ✅ **Tesco** - UK-wide delivery, full API coverage (search, basket, checkout)
 - 🔜 **Asda** - Planned Q2 2026
 - 🔜 **Morrisons** - Planned Q2 2026
 
@@ -111,7 +111,7 @@ Switch providers with a flag. Commands stay the same.
 ```bash
 groc --provider sainsburys search "milk"  # Sainsbury's
 groc --provider ocado search "milk"       # Ocado
-groc --provider tesco search "milk"       # Tesco (coming soon)
+groc --provider tesco search "milk"       # Tesco
 ```
 
 **Under the hood:**
@@ -266,6 +266,32 @@ groc logout
 groc status              Check login status
 ```
 
+### Tesco Authentication
+
+Tesco uses Akamai bot detection, which can block automated form filling. Three options:
+
+**Option 1 — Automated login (may be blocked):**
+```bash
+npm run groc -- --provider tesco login --email EMAIL --password PASS
+# Omit --password to be prompted interactively (keeps password out of shell history)
+npm run groc -- --provider tesco login --email EMAIL
+```
+
+**Option 2 — Import session from browser (recommended):**
+```bash
+# 1. Log in to tesco.com manually in Chrome/Firefox
+# 2. Export cookies with the "Cookie Editor" browser extension → Export All → JSON
+# 3. Import into the CLI:
+npm run groc -- --provider tesco import-session --file ~/Downloads/tesco-cookies.json
+```
+
+**Option 3 — Environment variable:**
+```bash
+TESCO_PASSWORD=yourpass npm run groc -- --provider tesco login --email EMAIL
+```
+
+Session is saved to `~/.tesco/session.json` and lasts ~7 days.
+
 ## Payment & Security
 
 Uses your existing supermarket account and saved payment method.
@@ -393,7 +419,7 @@ npm run groc -- --provider sainsburys search "milk"
 Contributions welcome!
 
 **Want to add:**
-- More supermarkets (Tesco, Asda, Morrisons)
+- More supermarkets (Asda, Morrisons)
 - Missing API endpoints (slots, checkout improvements)
 - Smart shopping algorithms
 - Nutritional data integration
@@ -403,14 +429,14 @@ Open an issue or PR.
 
 ## Roadmap
 
-### v2.0 (Current)
+### v1.0 (Current)
 - ✅ Multi-provider architecture
 - ✅ Sainsbury's provider (full coverage)
 - ✅ Ocado provider (full coverage)
+- ✅ Tesco provider (full coverage — search, basket, checkout, slots)
 - ✅ Smart shopping guide
 
-### v2.1 (Q1 2026)
-- 🔜 Tesco provider
+### v1.1 (Q2 2026)
 - 🔜 Delivery slot optimization
 - 🔜 Price history tracking
 - 🔜 Substitution handling
