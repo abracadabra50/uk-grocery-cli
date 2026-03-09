@@ -258,10 +258,21 @@ groc checkout            Place order
 --dry-run                Preview order without placing
 ```
 
+### Tesco-Specific Commands
+
+```bash
+groc --provider tesco import-session --file <cookies.json>   Import cookies from browser export
+groc --provider tesco staples                                 Analyse order history → repeat-buy suggestions
+groc --provider tesco discover                                Network interception tool for API discovery (dev)
+groc --provider tesco update <item-id> <qty>                  Update item quantity in basket
+groc --provider tesco clear                                   Empty Tesco basket
+```
+
 ### Authentication
 
 ```bash
-groc login --email <email> --password <pass>
+groc login --email <email>               Login (prompts for password interactively)
+groc login --email <email> --password <pass>   Login with password flag
 groc logout
 groc status              Check login status
 ```
@@ -375,31 +386,44 @@ See [`docs/SMART-SHOPPING.md`](./docs/SMART-SHOPPING.md) for implementation exam
 uk-grocery-cli/
 ├── src/
 │   ├── providers/
-│   │   ├── types.ts           # Common interface
-│   │   ├── sainsburys.ts      # Sainsbury's implementation
-│   │   ├── ocado.ts           # Ocado implementation
-│   │   └── index.ts           # Provider factory
+│   │   ├── types.ts              # Common GroceryProvider interface
+│   │   ├── sainsburys.ts         # Sainsbury's implementation
+│   │   ├── ocado.ts              # Ocado implementation
+│   │   ├── tesco/
+│   │   │   ├── index.ts          # TescoProvider (GroceryProvider impl)
+│   │   │   ├── api.ts            # GraphQL client (xapi.tesco.com)
+│   │   │   ├── auth.ts           # Playwright login + Akamai fallback
+│   │   │   ├── import-session.ts # Cookie import from browser export
+│   │   │   ├── staples.ts        # Repeat-purchase analysis from order history
+│   │   │   └── discover.ts       # Network interception tool (dev)
+│   │   └── index.ts              # Provider factory
+│   ├── browser/
+│   │   ├── tesco-slots.ts        # Delivery slot browser automation
+│   │   └── tesco-checkout.ts     # Checkout browser automation
 │   ├── auth/
-│   │   └── login.ts           # Playwright authentication
-│   └── cli.ts                 # Multi-provider CLI
+│   │   └── login.ts              # Shared Playwright authentication
+│   └── cli.ts                    # Multi-provider CLI entrypoint
+├── scripts/
+│   └── tesco-capture-search.ts   # Dev tool: capture Tesco search API responses
 ├── docs/
-│   ├── SMART-SHOPPING.md      # Agent intelligence guide
-│   └── API-REFERENCE.md       # Complete API documentation
-├── SKILL.md                   # OpenClaw skills format
-├── AGENTS.md                  # Agent integration guide
-└── README.md                  # This file
+│   ├── SMART-SHOPPING.md         # Agent intelligence guide
+│   └── API-REFERENCE.md          # Complete API documentation
+├── SKILL.md                      # Agent skills format
+├── AGENTS.md                     # Agent integration guide
+└── README.md                     # This file
 ```
 
 ## Known Limitations
 
 ### Authentication
-- **2FA Required**: Sainsbury's requires SMS verification on every login
-- **Session Duration**: Sessions expire after ~7 days (re-login needed)
+- **Sainsbury's**: SMS 2FA required on every fresh login — session lasts ~7 days
+- **Tesco**: Akamai bot detection can block automated login. Use `import-session` (manual browser login → Cookie Editor export → `groc --provider tesco import-session --file cookies.json`) as the reliable path. Session lasts ~7 days.
+- **Ocado**: Standard email/password login, sessions stable
 
 ### API Coverage
-- ✅ **Working**: Search, basket management, product data
-- ⚠️ **Experimental**: Delivery slots (endpoint partially documented)
-- ⚠️ **Experimental**: Checkout flow (needs real-world testing)
+- ✅ **Working**: Search, basket management, product data (all three providers)
+- ✅ **Working**: Tesco delivery slots + checkout (browser-automated, requires manual payment confirmation)
+- ⚠️ **Experimental**: Sainsbury's/Ocado checkout flow (needs real-world testing)
 - 🔜 **Coming**: Order tracking, substitutions, favourites
 
 Some endpoints are still being reverse-engineered. Contributions welcome.
@@ -429,24 +453,23 @@ Open an issue or PR.
 
 ## Roadmap
 
-### v1.0 (Current)
+### v2.0 (Current)
 - ✅ Multi-provider architecture
 - ✅ Sainsbury's provider (full coverage)
 - ✅ Ocado provider (full coverage)
-- ✅ Tesco provider (full coverage — search, basket, checkout, slots)
-- ✅ Smart shopping guide
+- ✅ Tesco provider (full coverage — search, basket, checkout, slots, staples)
 
-### v1.1 (Q2 2026)
+### v2.1 (Q2 2026)
 - 🔜 Delivery slot optimization
 - 🔜 Price history tracking
 - 🔜 Substitution handling
 
-### v2.2 (Q2 2026)
+### v3.0 (Q2 2026)
 - 🔜 Asda & Morrisons providers
 - 🔜 Nutritional data API
 - 🔜 Recipe database integration
 
-### v3.0 (Q3 2026)
+### v4.0 (Q3 2026)
 - 🔜 MCP server implementation for Claude Desktop
 - 🔜 Model Context Protocol integration
 - 🔜 Native Claude app support
