@@ -1,6 +1,6 @@
 {
   "name": "uk-grocery-cli",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Multi-supermarket grocery CLI for UK. Sainsbury's, Ocado, and more. Built for AI agents.",
   "type": "module",
   "main": "dist/cli.js",
@@ -12,6 +12,7 @@
     "build": "tsc",
     "dev": "tsx src/cli.ts",
     "groc": "tsx src/cli.ts",
+    "mcp": "tsx src/mcp-server.ts",
     "setup": "./setup.sh"
   },
   "keywords": [

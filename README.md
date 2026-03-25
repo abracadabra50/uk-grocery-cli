@@ -96,7 +96,7 @@ cd /path/to/uk-grocery-cli && npm run groc add 357937 --qty 2
 cd /path/to/uk-grocery-cli && npm run groc basket --json
 ```
 
-See [SKILL.md](SKILL.md) for complete agent integration guide.
+See [SKILL.md](SKILL.md) for complete agent integration guide, or the per-supermarket skills in [`skills/`](skills/).
 
 ## How It Works
 
@@ -163,6 +163,52 @@ await exec('groc --provider sainsburys checkout');
 **Your agent handles:** Meal planning, organic decisions, budget optimization
 
 See [`AGENTS.md`](./AGENTS.md) for complete integration guide.
+
+### MCP Server (Claude Desktop / MCP Clients)
+
+The CLI ships with a full MCP server exposing all grocery tools to Claude Desktop and other MCP-compatible clients.
+
+```bash
+# Start MCP server
+npx tsx src/mcp-server.ts
+```
+
+Add to Claude Desktop config (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "uk-grocery": {
+      "command": "node",
+      "args": ["/path/to/uk-grocery-cli/dist/mcp-server.js"]
+    }
+  }
+}
+```
+
+**Available MCP tools:**
+
+| Tool | Description |
+|------|-------------|
+| `grocery_search` | Search products (any provider) |
+| `grocery_compare` | Compare prices across all stores |
+| `grocery_basket_view` | View basket |
+| `grocery_basket_add` | Add to basket |
+| `grocery_basket_remove` | Remove from basket |
+| `grocery_basket_update` | Update quantity |
+| `grocery_basket_clear` | Clear basket |
+| `grocery_slots` | List delivery slots |
+| `grocery_book_slot` | Book delivery slot |
+| `grocery_checkout` | Checkout (dry_run default) |
+| `grocery_orders` | Order history |
+| `grocery_login` | Login to provider |
+| `grocery_status` | Check login status |
+| `grocery_providers` | List providers |
+| `tesco_staples` | Tesco repeat-purchase staples |
+
+All tools accept a `provider` parameter: `sainsburys` (default), `ocado`, or `tesco`.
+
+See [SKILL.md](SKILL.md) for full MCP reference and per-supermarket skill files in [`skills/`](skills/).
 
 ## Smart Shopping Features
 
@@ -402,7 +448,12 @@ uk-grocery-cli/
 │   │   └── tesco-checkout.ts     # Checkout browser automation
 │   ├── auth/
 │   │   └── login.ts              # Shared Playwright authentication
-│   └── cli.ts                    # Multi-provider CLI entrypoint
+│   ├── cli.ts                    # Multi-provider CLI entrypoint
+│   └── mcp-server.ts             # MCP server (all providers)
+├── skills/
+│   ├── sainsburys.md              # Sainsbury's agent skill
+│   ├── tesco.md                   # Tesco agent skill
+│   └── ocado.md                   # Ocado agent skill
 ├── scripts/
 │   └── tesco-capture-search.ts   # Dev tool: capture Tesco search API responses
 ├── docs/
@@ -459,20 +510,21 @@ Open an issue or PR.
 - ✅ Ocado provider (full coverage)
 - ✅ Tesco provider (full coverage — search, basket, checkout, slots, staples)
 
-### v2.1 (Q2 2026)
+### v2.1 (Current)
+- ✅ Full MCP server with multi-provider support
+- ✅ Per-supermarket skill files (`skills/`)
+- ✅ Cross-store price comparison via MCP
+- ✅ Tesco staples management via MCP
+
+### v2.2 (Q2 2026)
 - 🔜 Delivery slot optimization
 - 🔜 Price history tracking
 - 🔜 Substitution handling
 
-### v3.0 (Q2 2026)
+### v3.0 (Q3 2026)
 - 🔜 Asda & Morrisons providers
 - 🔜 Nutritional data API
 - 🔜 Recipe database integration
-
-### v4.0 (Q3 2026)
-- 🔜 MCP server implementation for Claude Desktop
-- 🔜 Model Context Protocol integration
-- 🔜 Native Claude app support
 
 ## License
 
