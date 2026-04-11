@@ -32,7 +32,7 @@ Built for agent frameworks like [OpenClaw](https://github.com/claw-labs/openclaw
 ## Supported Supermarkets
 
 - ✅ **Sainsbury's** - UK-wide delivery, full API coverage
-- ✅ **Ocado** - London & South England, complete integration
+- ⚠️ **Ocado** - **Currently broken.** Ocado migrated to a client-side React SPA and the previous endpoints have been removed. Provider is disabled and will throw a clear error until rebuilt. Tracking: [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5)
 - ✅ **Tesco** - UK-wide delivery, full API coverage (search, basket, checkout)
 - 🔜 **Asda** - Planned Q2 2026
 - 🔜 **Morrisons** - Planned Q2 2026
@@ -469,12 +469,13 @@ uk-grocery-cli/
 ### Authentication
 - **Sainsbury's**: SMS 2FA required on every fresh login — session lasts ~7 days
 - **Tesco**: Akamai bot detection can block automated login. Use `import-session` (manual browser login → Cookie Editor export → `groc --provider tesco import-session --file cookies.json`) as the reliable path. Session lasts ~7 days.
-- **Ocado**: Standard email/password login, sessions stable
+- **Ocado**: ⚠️ Disabled. Site moved to React SPA, previous endpoints removed. See [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5).
 
 ### API Coverage
-- ✅ **Working**: Search, basket management, product data (all three providers)
+- ✅ **Working**: Search, basket management, product data — Sainsbury's and Tesco
 - ✅ **Working**: Tesco delivery slots + checkout (browser-automated, requires manual payment confirmation)
-- ⚠️ **Experimental**: Sainsbury's/Ocado checkout flow (needs real-world testing)
+- ⚠️ **Experimental**: Sainsbury's checkout flow (needs real-world testing)
+- ⚠️ **Broken**: Entire Ocado provider — endpoints removed by Ocado, awaiting rebuild ([#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5))
 - 🔜 **Coming**: Order tracking, substitutions, favourites
 
 Some endpoints are still being reverse-engineered. Contributions welcome.
@@ -507,7 +508,7 @@ Open an issue or PR.
 ### v2.0 (Current)
 - ✅ Multi-provider architecture
 - ✅ Sainsbury's provider (full coverage)
-- ✅ Ocado provider (full coverage)
+- ⚠️ Ocado provider (disabled — see [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5))
 - ✅ Tesco provider (full coverage — search, basket, checkout, slots, staples)
 
 ### v2.1 (Current)
