@@ -9,7 +9,7 @@ const program = new Command();
 program
   .name('groc')
   .description('UK Grocery CLI - Multi-supermarket grocery automation')
-  .version('2.0.0')
+  .version('2.1.0')
   .option('-p, --provider <name>', 'Provider: sainsburys, ocado, tesco', 'sainsburys');
 
 // Parse a string as a positive integer, or throw
