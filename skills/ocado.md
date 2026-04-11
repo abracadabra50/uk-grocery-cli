@@ -13,6 +13,8 @@ allowed-tools: Bash({baseDir}/node:*), Bash(npm:run:groc:*)
 
 # Ocado Groceries Skill
 
+> ⚠️ **This provider is currently disabled.** Ocado migrated to a client-side React SPA and the previous REST endpoints have been removed. Every command below will throw a clear error until the provider is rebuilt against verified endpoints (or via a Playwright renderer). Tracking: [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5). Use `--provider sainsburys` or `--provider tesco` in the meantime.
+
 Search products, manage basket, and book delivery at Ocado.
 
 **Location:** `{baseDir}`
