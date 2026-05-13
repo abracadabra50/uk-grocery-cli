@@ -110,13 +110,17 @@ When using the MCP server, these tools are available with `provider: "sainsburys
 ```
 Base: https://www.sainsburys.co.uk/groceries-api/gol-services
 
-GET  /product/v1/product?filter[keyword]=milk    # Search
-GET  /basket/v2/basket                            # View basket
-POST /basket/v2/basket/items                      # Add to basket
-PUT  /basket/v2/basket                            # Update basket
-GET  /slot/v1/slot/reservation                    # Delivery slots
-POST /checkout/v1/checkout                        # Checkout
+GET  /product/v1/product?filter[keyword]=milk         # Search
+GET  /basket/v2/basket                                 # View basket
+POST /basket/v2/basket/items                           # Add to basket
+PUT  /basket/v2/basket                                 # Update basket
+GET  /slot/v1/slot/reservation                         # Delivery slots
+POST /checkout/v1/checkout                             # Checkout
+GET  /order/v1/order?page_size=10&page_number=1        # Order history list
+GET  /order/v1/order/{order_uid}                       # Single order detail (incl. items)
 ```
+
+**Order history note:** The correct page URL is `/gol-ui/my-account/orders`, not `/shop/gb/groceries/order-history` (which is a legacy 404). The API returns `order_uid` (not `order_id`) and `order_items` (not `items`) in the detail response.
 
 ---
 
