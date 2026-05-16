@@ -65,6 +65,53 @@ program
     }
   });
 
+// Status
+program
+  .command('status')
+  .description('Check saved session/authentication status')
+  .option('--json', 'Output as JSON')
+  .action(async (options, cmd) => {
+    try {
+      const providerName = cmd.optsWithGlobals().provider;
+      const provider = getProvider(cmd.optsWithGlobals());
+      const sessionInfo = providerName === 'tesco'
+        ? (await import('./providers/tesco/auth')).getSessionInfo()
+        : undefined;
+      const authenticated = await provider.isAuthenticated();
+
+      const result = {
+        provider: provider.name,
+        authenticated,
+        session: sessionInfo,
+      };
+
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      console.log(`\n🔐 ${provider.name.toUpperCase()} Status\n`);
+      console.log(`Authenticated: ${authenticated ? '✅ yes' : '❌ no'}`);
+
+      if (sessionInfo) {
+        console.log(`Session file: ${sessionInfo.exists ? sessionInfo.path : 'not found'}`);
+        if (sessionInfo.exists) {
+          console.log(`Cookies: ${sessionInfo.cookieCount}`);
+          console.log(`Last login/import: ${sessionInfo.lastLogin || 'unknown'}`);
+          console.log(`Expires: ${sessionInfo.expiresAt || 'unknown'} ${sessionInfo.expired ? '(expired)' : ''}`);
+        }
+      }
+
+      if (!authenticated) {
+        console.log('\n💡 Refresh with `groc login` or import browser cookies with `groc --provider tesco import-session --file <cookies.json>`.');
+      }
+      console.log();
+    } catch (error: any) {
+      console.error('❌ Status check failed:', error.message);
+      process.exit(1);
+    }
+  });
+
 // Search
 program
   .command('search <query>')
