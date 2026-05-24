@@ -94,6 +94,10 @@ npm run groc checkout
 cd /path/to/uk-grocery-cli && npm run groc search "chicken breast" --json
 cd /path/to/uk-grocery-cli && npm run groc add 357937 --qty 2
 cd /path/to/uk-grocery-cli && npm run groc basket --json
+
+# List favourites / frequently-bought products
+npm run groc favourites
+npm run groc fav-search "milk" --json
 ```
 
 See [SKILL.md](SKILL.md) for complete agent integration guide, or the per-supermarket skills in [`skills/`](skills/).
@@ -371,6 +375,17 @@ groc checkout            Place order
 --dry-run                Preview order without placing
 ```
 
+### Favourites
+
+Currently only supported on Sainsbur's.
+
+```bash
+groc favourites              List favourites/frequently-bought products
+groc favourites --json       Output favourites as JSON
+groc fav-search <query>      Search within favourites
+groc fav-search milk --json  Output favourite search as JSON
+```
+
 ### Tesco-Specific Commands
 
 ```bash
@@ -545,7 +560,8 @@ uk-grocery-cli/
 - ✅ **Working**: Tesco delivery slots + checkout handoff (browser-automated, requires manual payment confirmation)
 - ⚠️ **Experimental**: Sainsbury's checkout flow (needs real-world testing)
 - ⚠️ **Broken**: Entire Ocado provider — endpoints removed by Ocado, awaiting rebuild ([#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5))
-- 🔜 **Coming**: Order tracking, substitutions, favourites
+- ✅ **Working**: Sainsbury's Favourites list
+- 🔜 **Coming**: Order tracking, substitutions
 
 Some endpoints are still being reverse-engineered. Contributions welcome.
 

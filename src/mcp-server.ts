@@ -114,6 +114,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['query'],
         },
       },
+      {
+        name: 'grocery_favourites',
+        description: 'List favourite / frequently-bought products for a supermarket account. Currently supported by Sainsbury\'s.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            provider: { ...providerEnum, default: 'sainsburys' },
+            limit: { type: 'number', description: 'Maximum results to return (default: 50)', default: 50 },
+          },
+        },
+      },
+      {
+        name: 'grocery_favourites_search',
+        description: 'Search within favourite / frequently-bought products. Currently supported by Sainsbury\'s.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            provider: { ...providerEnum, default: 'sainsburys' },
+            query: { type: 'string', description: 'Search term (e.g., "milk", "yogurt", "bananas")' },
+            limit: { type: 'number', description: 'Maximum results to return (default: 24)', default: 24 },
+          },
+          required: ['query'],
+        },
+      },
 
       // ── Basket ──
       {
@@ -320,6 +344,58 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       return textResult(
         `Found ${results.length} products at ${providerName} (showing ${limited.length}):\n\n${formatted}`
+      );
+    }
+
+    // ── grocery_favourites ──
+    if (name === 'grocery_favourites') {
+      if (loginError) return textResult(loginError, true);
+      const { limit = 50 } = args as { limit?: number };
+      const provider: any = getProvider(providerName);
+
+      if (typeof provider.getFavourites !== 'function') {
+        return textResult(`Provider "${providerName}" does not support favourites.`, true);
+      }
+
+      const products = await provider.getFavourites({ limit });
+      if (products.length === 0) {
+        return textResult(`No favourites found at ${providerName}.`);
+      }
+
+      const formatted = products.map((p: any, i: number) => {
+        const stock = p.in_stock ? 'In stock' : 'Out of stock';
+        const unitPrice = p.unit_price ? ` (${p.unit_price.price}/${p.unit_price.measure})` : '';
+        return `${i + 1}. ${p.name}\n   £${p.retail_price.price.toFixed(2)}${unitPrice} | ${stock} | ID: ${p.product_uid}`;
+      }).join('\n\n');
+
+      return textResult(
+        `${providerName.toUpperCase()} Favourites (showing ${products.length}):\n\n${formatted}`
+      );
+    }
+
+    // ── grocery_favourites_search ──
+    if (name === 'grocery_favourites_search') {
+      if (loginError) return textResult(loginError, true);
+      const { query, limit = 24 } = args as { query: string; limit?: number };
+      const provider: any = getProvider(providerName);
+
+      if (typeof provider.searchFavourites !== 'function') {
+        return textResult(`Provider "${providerName}" does not support favourite search.`, true);
+      }
+
+      const products = await provider.searchFavourites(query, { limit });
+      if (products.length === 0) {
+        return textResult(`No favourite products matching "${query}" found at ${providerName}.`);
+      }
+
+      const formatted = products.map((p: any, i: number) => {
+        const stock = p.in_stock ? 'In stock' : 'Out of stock';
+        const unitPrice = p.unit_price ? ` (${p.unit_price.price}/${p.unit_price.measure})` : '';
+        return `${i + 1}. ${p.name}\n   £${p.retail_price.price.toFixed(2)}${unitPrice} | ${stock} | ID: ${p.product_uid}`;
+      }).join('\n\n');
+
+      return textResult(
+        `Favourite search results for "${query}" at ${providerName} (showing ${products.length}):\n\n${formatted}`
       );
     }
 

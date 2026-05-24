@@ -27,6 +27,15 @@ function getProvider(options: any) {
   return ProviderFactory.create(providerName as ProviderName);
 }
 
+function printProducts(products: any[]) {
+  products.forEach((p, i) => {
+    const stock = p.in_stock ? '✅' : '❌';
+    console.log(`${i + 1}. ${p.name}`);
+    console.log(`   £${p.retail_price.price} ${stock}`);
+    console.log(`   ID: ${p.product_uid}\n`);
+  });
+}
+
 // Login
 program
   .command('login')
@@ -127,15 +136,64 @@ program
         console.log(JSON.stringify({ products }, null, 2));
       } else {
         console.log(`\n🔍 Search results from ${provider.name}: "${query}"\n`);
-        products.forEach((p, i) => {
-          const stock = p.in_stock ? '✅' : '❌';
-          console.log(`${i + 1}. ${p.name}`);
-          console.log(`   £${p.retail_price.price} ${stock}`);
-          console.log(`   ID: ${p.product_uid}\n`);
-        });
+        printProducts(products);
       }
     } catch (error: any) {
       console.error('❌ Search failed:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Favourites
+program
+  .command('favourites')
+  .alias('favorites')
+  .description('List favourite / frequently-bought products')
+  .option('-l, --limit <number>', 'Max results', '50')
+  .option('--json', 'Output as JSON')
+  .action(async (options, cmd) => {
+    try {
+      const provider: any = getProvider(cmd.optsWithGlobals());
+      if (typeof provider.getFavourites !== 'function') {
+        throw new Error(`Provider "${provider.name}" does not support favourites`);
+      }
+
+      const products = await provider.getFavourites({ limit: parsePositiveInt(options.limit, 'limit') });
+      if (options.json) {
+        console.log(JSON.stringify({ products }, null, 2));
+      } else {
+        console.log(`\n⭐ Favourites from ${provider.name}\n`);
+        printProducts(products);
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to get favourites:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Search within favourites
+program
+  .command('fav-search <query>')
+  .alias('favorite-search')
+  .description('Search within favourite / frequently-bought products')
+  .option('-l, --limit <number>', 'Max results', '24')
+  .option('--json', 'Output as JSON')
+  .action(async (query, options, cmd) => {
+    try {
+      const provider: any = getProvider(cmd.optsWithGlobals());
+      if (typeof provider.searchFavourites !== 'function') {
+        throw new Error(`Provider "${provider.name}" does not support favourite search`);
+      }
+
+      const products = await provider.searchFavourites(query, { limit: parsePositiveInt(options.limit, 'limit') });
+      if (options.json) {
+        console.log(JSON.stringify({ products }, null, 2));
+      } else {
+        console.log(`\n⭐ Favourite search results from ${provider.name}: "${query}"\n`);
+        printProducts(products);
+      }
+    } catch (error: any) {
+      console.error('❌ Favourite search failed:', error.message);
       process.exit(1);
     }
   });

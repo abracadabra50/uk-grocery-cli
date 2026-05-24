@@ -51,6 +51,7 @@ export class SainsburysProvider implements GroceryProvider {
           }
           this.client.defaults.headers.common['Cookie'] = cookieString;
         }
+
       }
     } catch (error) {
       // Ignore session load errors
@@ -75,6 +76,7 @@ export class SainsburysProvider implements GroceryProvider {
     if (authCookie) {
       this.client.defaults.headers.common['wcauthtoken'] = authCookie.value;
     }
+
     
     // Don't call saveSession - login() already saved the full session data
     // Just set the cookie header for API requests
@@ -97,6 +99,19 @@ export class SainsburysProvider implements GroceryProvider {
     }
   }
 
+  private mapProduct(p: any): Product {
+    return {
+      product_uid: p.product_uid,
+      name: p.name,
+      description: p.description || p.short_description,
+      retail_price: p.retail_price,
+      unit_price: p.unit_price,
+      in_stock: p.in_stock !== false && p.is_available !== false,
+      image_url: p.image || p.assets?.plp_image,
+      provider: this.name
+    };
+  }
+
   async search(query: string, options?: SearchOptions): Promise<Product[]> {
     const params: any = {
       'filter[keyword]': query,
@@ -107,31 +122,58 @@ export class SainsburysProvider implements GroceryProvider {
 
     const response = await this.client.get('/product/v1/product', { params });
     
-    return response.data.products.map((p: any) => ({
-      product_uid: p.product_uid,
-      name: p.name,
-      description: p.description,
-      retail_price: p.retail_price,
-      unit_price: p.unit_price,
-      in_stock: p.in_stock !== false,
-      image_url: p.image,
-      provider: this.name
-    }));
+    return response.data.products.map((p: any) => this.mapProduct(p));
+  }
+
+  async getFavourites(options?: SearchOptions): Promise<Product[]> {
+    const response = await this.client.get('/product/v1/favourites', {
+      params: {
+        'include[ASSOCIATIONS]': 'true',
+        'include[REPLACEMENT_PRODUCTS]': 'true',
+        minimised: 'true',
+        store_identifier: this.storeNumber
+      },
+      headers: {
+        Referer: 'https://www.sainsburys.co.uk/gol-ui/favourites-as-list'
+      }
+    });
+
+    const products = (response.data.products || []).map((p: any) => this.mapProduct(p));
+    const offset = options?.offset || 0;
+    const limit = options?.limit;
+    return typeof limit === 'number' ? products.slice(offset, offset + limit) : products.slice(offset);
+  }
+
+  async searchFavourites(query: string, options?: SearchOptions): Promise<Product[]> {
+    const products = await this.getFavourites();
+    const scored = products
+      .map(product => ({ product, score: this.favouriteSearchScore(product, query) }))
+      .filter(result => result.score > 0)
+      .sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name))
+      .map(result => result.product);
+
+    const offset = options?.offset || 0;
+    const limit = options?.limit || 24;
+    return scored.slice(offset, offset + limit);
+  }
+
+  private favouriteSearchScore(product: Product, query: string): number {
+    const haystack = `${product.name} ${product.description || ''}`.toLowerCase();
+    const needle = query.trim().toLowerCase();
+    if (!needle) return 0;
+    if (haystack === needle) return 1000;
+    if (haystack.includes(needle)) return 500 + needle.length;
+
+    const terms = needle.split(/\s+/).filter(Boolean);
+    return terms.reduce((score, term) => {
+      if (haystack.includes(term)) return score + 100 + term.length;
+      return score;
+    }, 0);
   }
 
   async getProduct(productId: string): Promise<Product> {
     const response = await this.client.get(`/product/v1/product/${productId}`);
-    const p = response.data;
-    return {
-      product_uid: p.product_uid,
-      name: p.name,
-      description: p.description,
-      retail_price: p.retail_price,
-      unit_price: p.unit_price,
-      in_stock: p.in_stock !== false,
-      image_url: p.image,
-      provider: this.name
-    };
+    return this.mapProduct(response.data);
   }
 
   async getCategories(): Promise<any> {
