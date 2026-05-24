@@ -258,43 +258,48 @@ export class SainsburysProvider implements GroceryProvider {
   }
 
   async getOrders(): Promise<Order[]> {
-    try {
-      // Try common order history endpoints
-      const endpoints = [
-        '/order/v1/orders',
-        '/order/v1/history', 
-        '/orders/v1/history',
-        '/customer/v1/orders'
-      ];
-      
-      for (const endpoint of endpoints) {
+    // Fetch the order list
+    const listResponse = await this.client.get('/order/v1/order', {
+      params: { page_size: 10, page_number: 1 }
+    });
+
+    const rawOrders: any[] = listResponse.data.orders || [];
+
+    // Fetch full detail for each order (needed to get order_items)
+    const orders = await Promise.all(
+      rawOrders.map(async (o: any) => {
+        let items: BasketItem[] = [];
         try {
-          const response = await this.client.get(endpoint);
-          if (response.data && (response.data.orders || response.data.order_history)) {
-            const orders = response.data.orders || response.data.order_history || [];
-            return orders.map((o: any) => ({
-              order_id: o.order_id || o.order_number || o.id,
-              status: o.status || o.order_status || 'unknown',
-              total: parseFloat(o.total || o.total_cost || o.order_total || 0),
-              delivery_slot: o.delivery_slot ? {
-                slot_id: o.delivery_slot.slot_id || '',
-                start_time: o.delivery_slot.start_time || '',
-                end_time: o.delivery_slot.end_time || '',
-                date: o.delivery_slot.date || '',
-                price: parseFloat(o.delivery_slot.price || 0),
-                available: true
-              } : undefined,
-              items: o.items || []
-            }));
-          }
-        } catch (e) {
-          continue;
+          const detail = await this.client.get(`/order/v1/order/${o.order_uid}`);
+          items = (detail.data.order_items || []).map((item: any) => ({
+            item_id: item.product.product_uid,
+            product_uid: item.product.product_uid,
+            name: item.product.name,
+            quantity: item.quantity,
+            unit_price: parseFloat((item.sub_total / item.quantity).toFixed(2)),
+            total_price: parseFloat(item.sub_total)
+          }));
+        } catch {
+          // detail fetch failed — order still usable without items
         }
-      }
-      
-      return [];
-    } catch (error: any) {
-      return [];
-    }
+
+        return {
+          order_id: o.order_uid,
+          status: o.status,
+          total: parseFloat(o.total || 0),
+          delivery_slot: o.slot_start_time ? {
+            slot_id: '',
+            start_time: o.slot_start_time,
+            end_time: o.slot_end_time || '',
+            date: o.slot_start_time.split('T')[0],
+            price: parseFloat(o.slot_price || 0),
+            available: true
+          } : undefined,
+          items
+        };
+      })
+    );
+
+    return orders;
   }
 }
