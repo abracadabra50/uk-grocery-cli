@@ -6,12 +6,14 @@
   "main": "dist/cli.js",
   "bin": {
     "groc": "./dist/cli.js",
-    "groc-mcp": "./dist/mcp-server.js"
+    "groc-mcp": "./dist/mcp-server.js",
+    "groc-api": "./dist/http-server.js"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
     "groc": "tsx src/cli.ts",
+    "api": "tsx src/http-server.ts",
     "mcp": "tsx src/mcp-server.ts",
     "setup": "./setup.sh"
   },

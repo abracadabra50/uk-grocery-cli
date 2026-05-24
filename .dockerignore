@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.gitignore
+Dockerfile
+.dockerignore
+*.log
+.env
+.env.*
+.sainsburys
+.tesco
+.ocado
+*_response.json
+tmp
+temp
+coverage
+.DS_Store

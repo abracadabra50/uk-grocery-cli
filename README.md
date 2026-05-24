@@ -210,6 +210,73 @@ All tools accept a `provider` parameter: `sainsburys` (default), `ocado`, or `te
 
 See [SKILL.md](SKILL.md) for full MCP reference and per-supermarket skill files in [`skills/`](skills/).
 
+### Lightweight HTTP API
+
+Some agents have access to the local network but not the filesystem.
+
+For those cases, it's useful to have a tiny JSON HTTP API that replicates the CLI behaviour:
+
+```bash
+npm run api
+# or, recommended if exposing beyond your own shell:
+GROC_API_TOKEN=devsecret npm run api
+```
+
+Defaults:
+
+- Host: `127.0.0.1` (`GROC_API_HOST`)
+- Port: `7876` (`GROC_API_PORT`)
+- Provider: `sainsburys` (`GROC_PROVIDER`)
+
+Endpoints:
+
+```bash
+GET /search?q=milk&limit=24
+GET /add?id=1234&qty=1        # also accepts /add?q=1234
+GET /remove?id=<item-id>      # basket item ID, not product ID
+GET /update?id=<item-id>&qty=2
+GET /basket
+GET /favourites?limit=50       # if provider supports favourites
+GET /fav-search?q=milk&limit=24 # if provider supports favourites
+```
+
+Example with token auth:
+
+```bash
+curl -H 'Authorization: Bearer devsecret' 'http://127.0.0.1:7876/search?q=milk'
+```
+
+### Docker HTTP API
+
+Build the lightweight API image:
+
+```bash
+docker build -t uk-grocery-api .
+```
+
+Run it with your Sainsbury's auth file mounted read-only. The app expects the session at `~/.sainsburys/session.json`; inside this image that is `/root/.sainsburys/session.json`.
+
+```bash
+docker run --rm \
+  -p 127.0.0.1:7876:7876 \
+  -v "$HOME/.sainsburys:/root/.sainsburys:ro" \
+  uk-grocery-api
+```
+
+With optional API token auth:
+
+```bash
+docker run --rm \
+  -p 127.0.0.1:7876:7876 \
+  -e GROC_API_TOKEN=devsecret \
+  -v "$HOME/.sainsburys:/root/.sainsburys:ro" \
+  uk-grocery-api
+
+curl -H 'Authorization: Bearer devsecret' 'http://127.0.0.1:7876/basket'
+```
+
+Keep the host publish address as `127.0.0.1:7876:7876` unless you intentionally want other machines to reach the API.
+
 ## Smart Shopping Features
 
 The CLI provides product data. Your agent makes intelligent decisions.

@@ -9,7 +9,6 @@ dist/
 .ocado/
 
 # Build artifacts
-*.js
 *.js.map
 !jest.config.js
 !setup.js
