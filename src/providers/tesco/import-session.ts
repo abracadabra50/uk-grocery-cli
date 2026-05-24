@@ -19,7 +19,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { saveSession, TescoSession } from './auth';
+import { inferSessionExpiry, saveSession, TescoSession } from './auth';
 
 export function importSession(filePath: string): void {
   const resolved = filePath.startsWith('~')
@@ -61,12 +61,18 @@ export function importSession(filePath: string): void {
     sameSite: c.sameSite || c.SameSite || 'Lax',
   }));
 
+  const validCookies = normalised.filter((c: any) => c.name && c.value);
+
+  if (validCookies.length === 0) {
+    throw new Error('No usable cookies found in the file. Check the export includes name/value fields.');
+  }
+
   const session: TescoSession = {
-    cookies: normalised,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    cookies: validCookies,
+    expiresAt: inferSessionExpiry(validCookies),
     lastLogin: new Date().toISOString(),
   };
 
   saveSession(session);
-  console.log(`✅ Imported ${normalised.length} cookies — Tesco session ready`);
+  console.log(`✅ Imported ${validCookies.length} cookies — Tesco session ready until ${session.expiresAt}`);
 }

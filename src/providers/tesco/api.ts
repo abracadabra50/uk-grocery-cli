@@ -23,6 +23,20 @@ const ORDERS_URL = 'https://www.tesco.com/groceries/en-GB/orders';
 // Static API key baked into Tesco's mfe-* bundles (confirmed from discovery)
 const TESCO_API_KEY = 'TvOSZJHlEk0pjniDGQFAc9Q59WGAR4dA';
 
+function isAuthError(error: any): boolean {
+  const status = error?.response?.status;
+  return status === 401 || status === 403;
+}
+
+function tescoSessionHelp(status?: number): string {
+  return [
+    `Tesco session rejected${status ? ` (${status})` : ''}.`,
+    'Run `groc --provider tesco status` to check the saved session.',
+    'If it has expired, log in again or import fresh browser cookies:',
+    '`groc --provider tesco import-session --file ~/Downloads/tesco-cookies.json`',
+  ].join(' ');
+}
+
 export class TescoAPI {
   private client: AxiosInstance;
 
@@ -41,6 +55,16 @@ export class TescoAPI {
       },
       withCredentials: true,
     });
+
+    this.client.interceptors.response.use(
+      response => response,
+      error => {
+        if (isAuthError(error)) {
+          error.message = tescoSessionHelp(error.response?.status);
+        }
+        return Promise.reject(error);
+      }
+    );
   }
 
   /** Inject session cookies from ~/.tesco/session.json */

@@ -31,9 +31,9 @@ Built for agent frameworks like [OpenClaw](https://github.com/claw-labs/openclaw
 
 ## Supported Supermarkets
 
-- ✅ **Sainsbury's** - UK-wide delivery, full API coverage
+- ✅ **Sainsbury's** - UK-wide delivery, search + basket flow
 - ⚠️ **Ocado** - **Currently broken.** Ocado migrated to a client-side React SPA and the previous endpoints have been removed. Provider is disabled and will throw a clear error until rebuilt. Tracking: [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5)
-- ✅ **Tesco** - UK-wide delivery, full API coverage (search, basket, checkout)
+- ✅ **Tesco** - UK-wide delivery, search + basket + slots; browser-cookie import recommended for auth
 - 🔜 **Asda** - Planned Q2 2026
 - 🔜 **Morrisons** - Planned Q2 2026
 
@@ -307,6 +307,7 @@ groc checkout            Place order
 ### Tesco-Specific Commands
 
 ```bash
+groc --provider tesco status                                  Check saved Tesco session/auth state
 groc --provider tesco import-session --file <cookies.json>   Import cookies from browser export
 groc --provider tesco staples                                 Analyse order history → repeat-buy suggestions
 groc --provider tesco discover                                Network interception tool for API discovery (dev)
@@ -325,9 +326,9 @@ groc status              Check login status
 
 ### Tesco Authentication
 
-Tesco uses Akamai bot detection, which can block automated form filling. Three options:
+Tesco uses Akamai bot detection, which can block automated form filling. The CLI now launches Playwright with stealth patches and a real Chrome channel when available, but imported browser cookies remain the reliable path.
 
-**Option 1 — Automated login (may be blocked):**
+**Option 1 — Automated login (improved, still may be blocked):**
 ```bash
 npm run groc -- --provider tesco login --email EMAIL --password PASS
 # Omit --password to be prompted interactively (keeps password out of shell history)
@@ -347,7 +348,7 @@ npm run groc -- --provider tesco import-session --file ~/Downloads/tesco-cookies
 TESCO_PASSWORD=yourpass npm run groc -- --provider tesco login --email EMAIL
 ```
 
-Session is saved to `~/.tesco/session.json` and lasts ~7 days.
+Session is saved to `~/.tesco/session.json`. Tesco controls the real lifetime; run `groc --provider tesco status` if basket calls start returning 401/403.
 
 ## Payment & Security
 
@@ -467,13 +468,14 @@ uk-grocery-cli/
 ## Known Limitations
 
 ### Authentication
-- **Sainsbury's**: SMS 2FA required on every fresh login — session lasts ~7 days
-- **Tesco**: Akamai bot detection can block automated login. Use `import-session` (manual browser login → Cookie Editor export → `groc --provider tesco import-session --file cookies.json`) as the reliable path. Session lasts ~7 days.
+- **Sainsbury's**: SMS 2FA required on every fresh login — session duration is controlled by Sainsbury's
+- **Tesco**: Akamai bot detection can block automated login. Use `import-session` (manual browser login → Cookie Editor export → `groc --provider tesco import-session --file cookies.json`) as the reliable path. Session duration is controlled by Tesco and may be short.
 - **Ocado**: ⚠️ Disabled. Site moved to React SPA, previous endpoints removed. See [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5).
 
 ### API Coverage
-- ✅ **Working**: Search, basket management, product data — Sainsbury's and Tesco
-- ✅ **Working**: Tesco delivery slots + checkout (browser-automated, requires manual payment confirmation)
+- ✅ **Working**: Sainsbury's and Tesco search/product data; Tesco basket/slots with a valid session
+- ⚠️ **Partial**: Basket management depends on supermarket session lifetime and bot checks
+- ✅ **Working**: Tesco delivery slots + checkout handoff (browser-automated, requires manual payment confirmation)
 - ⚠️ **Experimental**: Sainsbury's checkout flow (needs real-world testing)
 - ⚠️ **Broken**: Entire Ocado provider — endpoints removed by Ocado, awaiting rebuild ([#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5))
 - 🔜 **Coming**: Order tracking, substitutions, favourites
@@ -507,9 +509,9 @@ Open an issue or PR.
 
 ### v2.0 (Current)
 - ✅ Multi-provider architecture
-- ✅ Sainsbury's provider (full coverage)
+- ✅ Sainsbury's provider (search + basket flow)
 - ⚠️ Ocado provider (disabled — see [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5))
-- ✅ Tesco provider (full coverage — search, basket, checkout, slots, staples)
+- ✅ Tesco provider (search, basket, checkout handoff, slots, staples; cookie import recommended)
 
 ### v2.1 (Current)
 - ✅ Full MCP server with multi-provider support

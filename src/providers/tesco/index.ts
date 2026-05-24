@@ -8,11 +8,6 @@
 import { GroceryProvider, Product, Basket, DeliverySlot, Order, SearchOptions, BasketItem } from '../types';
 import { TescoAPI } from './api';
 import { login, loadSession, clearSession, getCookieString } from './auth';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-
-const SESSION_FILE = path.join(os.homedir(), '.tesco', 'session.json');
 
 export class TescoProvider implements GroceryProvider {
   readonly name = 'tesco';
@@ -25,14 +20,9 @@ export class TescoProvider implements GroceryProvider {
 
   private loadSession(): void {
     try {
-      if (fs.existsSync(SESSION_FILE)) {
-        const session = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'));
-        if (session.cookies && Array.isArray(session.cookies)) {
-          const cookieString = session.cookies
-            .map((c: any) => `${c.name}=${c.value}`)
-            .join('; ');
-          this.api.setAuthCookies(cookieString);
-        }
+      const session = loadSession();
+      if (session?.cookies && Array.isArray(session.cookies)) {
+        this.api.setAuthCookies(getCookieString(session));
       }
     } catch {
       // Ignore session load errors silently
