@@ -270,6 +270,7 @@ export class OcadoProvider implements GroceryProvider {
   private mapEntity(e: any): Product {
     const price = num(e?.price?.current?.amount ?? e?.price?.amount);
     const unit = num(e?.price?.unit?.current?.amount ?? e?.price?.unit?.amount);
+    const rating = num(e?.ratingSummary?.overallRating);
     return {
       product_uid: e.productId,
       name: e.name,
@@ -281,20 +282,24 @@ export class OcadoProvider implements GroceryProvider {
       in_stock: e.available !== false,
       image_url: e?.image ? `${BASE_URL}${e.image}` : undefined,
       provider: this.name,
+      rating,
+      review_count: e?.ratingSummary?.count ?? undefined,
+      size: e?.size?.value ?? undefined,
     };
   }
 
-  // -------------------------------------------------------------- search --
-
-  async search(query: string, options?: SearchOptions): Promise<Product[]> {
-    const limit = options?.limit ?? 24;
-    const res = await this.client.get(`/search?q=${encodeURIComponent(query)}`, {
+  /**
+   * Scrape a server-rendered listing page (search results, favourites,
+   * regulars, category browse) into ranked Products. All these pages embed
+   * the same `productEntities` blob; DOM anchor order = site ranking.
+   */
+  private async scrapeProductsPage(urlPath: string, limit = 100): Promise<Product[]> {
+    const res = await this.client.get(urlPath, {
       headers: { Accept: 'text/html,application/xhtml+xml' },
     });
     const html = String(res.data);
     const entities = extractProductEntities(html);
 
-    // DOM anchor order = site ranking; sku = last path segment of /products/ links
     const bySku: Record<string, any> = {};
     for (const id of Object.keys(entities)) {
       const e = entities[id];
@@ -322,6 +327,12 @@ export class OcadoProvider implements GroceryProvider {
     return out;
   }
 
+  // -------------------------------------------------------------- search --
+
+  async search(query: string, options?: SearchOptions): Promise<Product[]> {
+    return this.scrapeProductsPage(`/search?q=${encodeURIComponent(query)}`, options?.limit ?? 24);
+  }
+
   async getProduct(productId: string): Promise<Product> {
     const products = await this.productsInfo([productId]);
     if (!products.length) throw new Error(`Ocado product not found: ${productId}`);
@@ -329,7 +340,56 @@ export class OcadoProvider implements GroceryProvider {
   }
 
   async getCategories(): Promise<any> {
-    throw new Error(NOT_IMPLEMENTED_YET);
+    // /categories is server-rendered; links look like
+    // /categories/<slug>/<uuid> (depth 1) with deeper nesting below.
+    const res = await this.client.get('/categories', {
+      headers: { Accept: 'text/html,application/xhtml+xml' },
+    });
+    const html = String(res.data);
+    const cats: any[] = [];
+    const seen = new Set<string>();
+    const re = /<a[^>]+href="(\/categories\/[^"?#]+)[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      const path = m[1].replace(/\/$/, '');
+      const name = m[2].replace(/<[^>]+>/g, ' ')
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&#x27;|&#39;|&apos;/g, "'")
+        .replace(/\s+/g, ' ').trim();
+      if (!name || seen.has(path)) continue;
+      seen.add(path);
+      const segs = path.split('/').filter(Boolean); // ["categories", slug, uuid, ...]
+      if (segs.length < 3) continue;
+      cats.push({ name, path, slug: segs[1], id: segs[2], depth: segs.length - 3 });
+    }
+    return cats;
+  }
+
+  /**
+   * Browse a category listing. Accepts a path from getCategories()
+   * (/categories/<slug>/<uuid>[/...]) — the numeric SKU-style UUID in the
+   * path is required, a bare slug 404s.
+   */
+  async browseCategory(categoryPath: string, options?: SearchOptions): Promise<Product[]> {
+    const clean = categoryPath.split('?')[0].replace(/\/$/, '');
+    if (!clean.startsWith('/categories/')) {
+      throw new Error(`Expected a /categories/... path from getCategories(), got: ${categoryPath}`);
+    }
+    return this.scrapeProductsPage(clean, options?.limit ?? 100);
+  }
+
+  /** Favourite/frequently-bought products (/favorites page, server-rendered). */
+  async getFavourites(options?: SearchOptions): Promise<Product[]> {
+    return this.scrapeProductsPage('/favorites', options?.limit ?? 100);
+  }
+
+  /** Ocado has no server-side favourites search — filter favourites by name. */
+  async searchFavourites(query: string, options?: SearchOptions): Promise<Product[]> {
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const favs = await this.getFavourites({ limit: 500 });
+    return favs
+      .filter(p => words.every(w => p.name.toLowerCase().includes(w)))
+      .slice(0, options?.limit ?? 24);
   }
 
   // -------------------------------------------------------------- basket --

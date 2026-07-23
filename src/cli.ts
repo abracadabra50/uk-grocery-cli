@@ -30,8 +30,11 @@ function getProvider(options: any) {
 function printProducts(products: any[]) {
   products.forEach((p, i) => {
     const stock = p.in_stock ? '✅' : '❌';
-    console.log(`${i + 1}. ${p.name}`);
-    console.log(`   £${p.retail_price.price} ${stock}`);
+    const rating = p.rating ? ` ${p.rating}★ (${p.review_count ?? 0})` : '';
+    const size = p.size ? ` / ${p.size}` : '';
+    const unit = p.unit_price?.price ? ` (£${p.unit_price.price}${p.unit_price.measure ? `/${p.unit_price.measure}` : ''})` : '';
+    console.log(`${i + 1}. ${p.name}${rating}`);
+    console.log(`   £${p.retail_price.price}${size}${unit} ${stock}`);
     console.log(`   ID: ${p.product_uid}\n`);
   });
 }
@@ -167,6 +170,54 @@ program
       }
     } catch (error: any) {
       console.error('❌ Failed to get favourites:', error.message);
+      process.exit(1);
+    }
+  });
+
+// List categories
+program
+  .command('categories')
+  .description('List browse categories (provider-dependent shape)')
+  .option('--json', 'Output as JSON')
+  .action(async (options, cmd) => {
+    try {
+      const provider = getProvider(cmd.optsWithGlobals());
+      const cats = await provider.getCategories();
+      if (options.json) {
+        console.log(JSON.stringify({ categories: cats }, null, 2));
+      } else if (Array.isArray(cats) && cats[0]?.path) {
+        console.log(`\n🗂️  ${provider.name.toUpperCase()} categories\n`);
+        cats.forEach((c: any) => console.log(`${'  '.repeat(c.depth ?? 0)}${c.name}\n${'  '.repeat(c.depth ?? 0)}   ${c.path}`));
+      } else {
+        console.log(JSON.stringify(cats, null, 2));
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to list categories:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Browse a category listing
+program
+  .command('browse <category-path>')
+  .description('Browse products in a category (use a path from `categories`)')
+  .option('-l, --limit <number>', 'Max results', '24')
+  .option('--json', 'Output as JSON')
+  .action(async (categoryPath, options, cmd) => {
+    try {
+      const provider: any = getProvider(cmd.optsWithGlobals());
+      if (typeof provider.browseCategory !== 'function') {
+        throw new Error(`Provider "${provider.name}" does not support category browsing`);
+      }
+      const products = await provider.browseCategory(categoryPath, { limit: parsePositiveInt(options.limit, 'limit') });
+      if (options.json) {
+        console.log(JSON.stringify({ products }, null, 2));
+      } else {
+        console.log(`\n🗂️  ${provider.name}: ${categoryPath}\n`);
+        printProducts(products);
+      }
+    } catch (error: any) {
+      console.error('❌ Browse failed:', error.message);
       process.exit(1);
     }
   });
