@@ -44,9 +44,40 @@ const SESSION_FILE = path.join(SESSION_DIR, 'session.json');
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36';
 
 const NOT_IMPLEMENTED_YET =
-  'This Ocado endpoint has not been reverse-engineered yet. ' +
-  'Working today: login/import-session, search, getProduct, and all basket ' +
-  'operations. Slots/checkout/orders still need netlog capture — see issue #5.';
+  'Ocado slot booking and checkout have not been reverse-engineered ' +
+  '(capturing them requires performing a real booking). Everything else ' +
+  'works: login, search, browse, favourites, basket, slots, orders.';
+
+/** Verbatim GraphQL query Ocado's SPA uses for order history. */
+const COMPLETED_ORDERS_QUERY = `query GetCompletedOrders($first: Int!, $after: String) {
+  completedOrders(first: $first, after: $after) {
+    retentionPeriod
+    pageInfo { endCursor hasNextPage __typename }
+    edges {
+      node {
+        orderId
+        status
+        region { retailerRegionId regionId __typename }
+        prices { total { currency amount __typename } __typename }
+        recurringOrderDefinition { name __typename }
+        slot {
+          __typename
+          ... on InternalOrderSlot {
+            start end type shippingGroupType
+            carrier { carrierId __typename }
+            externalLocker { externalLockerId __typename }
+            deliveryDestination { deliveryMethod name address { timeZone __typename } __typename }
+            __typename
+          }
+          ... on ImportedOrderSlot { start end name timeZone __typename }
+        }
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}`;
 
 interface OcadoSession {
   cookies: any[];
@@ -456,21 +487,109 @@ export class OcadoProvider implements GroceryProvider {
     }
   }
 
-  // --------------------------------------------- not yet reverse-engineered --
+  // --------------------------------------------- slots, orders, regulars --
+
+  /** deliveryDestinationId + regionId, scraped from the /checkout page HTML. */
+  private locationIds: { dest: string; region: string } | null = null;
+
+  private async getLocationIds(): Promise<{ dest: string; region: string }> {
+    if (this.locationIds) return this.locationIds;
+    const res = await this.client.get('/checkout', {
+      headers: { Accept: 'text/html,application/xhtml+xml' },
+    });
+    const html = String(res.data);
+    const dest = /"deliveryDestinationId":"([0-9a-f-]{36})"/.exec(html)?.[1];
+    const region = /"regionId":"([0-9a-f-]{36})"/.exec(html)?.[1];
+    if (!dest || !region) {
+      throw new Error('Could not find deliveryDestinationId/regionId on /checkout — logged out?');
+    }
+    this.locationIds = { dest, region };
+    return this.locationIds;
+  }
 
   async getDeliverySlots(): Promise<DeliverySlot[]> {
-    throw new Error(NOT_IMPLEMENTED_YET);
+    const { dest, region } = await this.getLocationIds();
+    const res = await this.client.post(
+      '/api/ecomslots/v2/slots',
+      {
+        deliveryDestinationId: dest,
+        regionId: region,
+        displayConfiguration: 'DELIVERY_METHOD',
+        shippingGroupType: 'default home delivery',
+        numberOfDays: 7,
+      },
+      { headers: { 'x-csrf-token': await this.getCsrfToken() } }
+    );
+    const out: DeliverySlot[] = [];
+    for (const carrier of res.data?.carriers ?? []) {
+      for (const day of carrier.gridSlots ?? []) {
+        for (const s of day.slots ?? []) {
+          out.push({
+            slot_id: s.slotId,
+            start_time: s.slotWindow?.startTime ?? '',
+            end_time: s.slotWindow?.endTime ?? '',
+            date: day.day ?? (s.slotWindow?.startTime ?? '').slice(0, 10),
+            price: num(s.deliveryPrice?.amount) ?? 0,
+            available: (s.attributes ?? []).includes('AVAILABLE'),
+          });
+        }
+      }
+    }
+    return out;
   }
+
+  async getOrders(): Promise<Order[]> {
+    const res = await this.client.post(
+      '/graphql',
+      { operationName: 'GetCompletedOrders', query: COMPLETED_ORDERS_QUERY, variables: { first: 10 } },
+      { headers: { 'x-csrf-token': await this.getCsrfToken() } }
+    );
+    const edges = res.data?.data?.completedOrders?.edges ?? [];
+    // Enrich each order with line items from the v6 order detail endpoint
+    return Promise.all(edges.map(async ({ node }: any) => {
+      let items: BasketItem[] = [];
+      try {
+        const detail = await this.client.get(`/api/order/v6/orders/${node.orderId}`);
+        const order = detail.data?.entities?.order?.[node.orderId];
+        items = (order?.groupedProducts?.products ?? []).map((p: any) => ({
+          item_id: p.productId,
+          product_uid: p.productId,
+          name: p.name,
+          quantity: p.quantity ?? 0,
+          unit_price: num(p?.prices?.unit?.amount) ?? 0,
+          total_price: num(p?.prices?.total?.amount) ?? 0,
+        }));
+      } catch { /* detail fetch best-effort */ }
+      return {
+        order_id: node.orderId,
+        status: node.status,
+        total: num(node?.prices?.total?.amount) ?? 0,
+        delivery_slot: node.slot ? {
+          slot_id: '',
+          start_time: node.slot.start ?? '',
+          end_time: node.slot.end ?? '',
+          date: (node.slot.start ?? '').slice(0, 10),
+          price: 0,
+          available: false,
+        } : undefined,
+        items,
+      };
+    }));
+  }
+
+  /** Recurring-shopping ("Regulars") definitions. Empty array if none set up. */
+  async getRegulars(): Promise<any[]> {
+    const res = await this.client.get('/api/recurringshopping/v2/web/definitions');
+    return Array.isArray(res.data) ? res.data : [];
+  }
+
+  // --------------------------------------------- not yet reverse-engineered --
 
   async bookSlot(_slotId: string): Promise<void> {
     throw new Error(NOT_IMPLEMENTED_YET);
   }
 
   async checkout(_dryRun?: boolean): Promise<Order> {
-    throw new Error(NOT_IMPLEMENTED_YET);
-  }
-
-  async getOrders(): Promise<Order[]> {
     throw new Error(NOT_IMPLEMENTED_YET);
   }
 }

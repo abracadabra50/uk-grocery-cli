@@ -222,6 +222,66 @@ program
     }
   });
 
+// Deals view: top-rated + cheapest for a query (works with any provider
+// whose products carry rating/price data)
+program
+  .command('deals <query>')
+  .description('Show top-rated and cheapest results for a query')
+  .option('-l, --limit <number>', 'Max results per table', '5')
+  .option('--json', 'Output as JSON')
+  .action(async (query, options, cmd) => {
+    try {
+      const provider = getProvider(cmd.optsWithGlobals());
+      const limit = parsePositiveInt(options.limit, 'limit');
+      const products = await provider.search(query, { limit: 50 });
+      const available = products.filter(p => p.in_stock && p.retail_price.price > 0);
+      const rated = available
+        .filter(p => p.rating)
+        .sort((a, b) => (b.rating! - a.rating!) || ((b.review_count ?? 0) - (a.review_count ?? 0)))
+        .slice(0, limit);
+      const cheapest = [...available]
+        .sort((a, b) => a.retail_price.price - b.retail_price.price)
+        .slice(0, limit);
+      if (options.json) {
+        console.log(JSON.stringify({ top_rated: rated, cheapest }, null, 2));
+      } else {
+        console.log(`\n🏆 Top rated from ${provider.name}: "${query}"\n`);
+        printProducts(rated.length ? rated : available.slice(0, limit));
+        console.log(`💰 Cheapest\n`);
+        printProducts(cheapest);
+      }
+    } catch (error: any) {
+      console.error('❌ Deals failed:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Recurring shopping ("Regulars")
+program
+  .command('regulars')
+  .description('List recurring-shopping definitions (Ocado)')
+  .option('--json', 'Output as JSON')
+  .action(async (options, cmd) => {
+    try {
+      const provider: any = getProvider(cmd.optsWithGlobals());
+      if (typeof provider.getRegulars !== 'function') {
+        throw new Error(`Provider "${provider.name}" does not support regulars`);
+      }
+      const regulars = await provider.getRegulars();
+      if (options.json) {
+        console.log(JSON.stringify({ regulars }, null, 2));
+      } else if (regulars.length === 0) {
+        console.log(`\n🔁 No regulars set up on ${provider.name}.`);
+      } else {
+        console.log(`\n🔁 Regulars on ${provider.name}\n`);
+        regulars.forEach((r: any) => console.log(JSON.stringify(r)));
+      }
+    } catch (error: any) {
+      console.error('❌ Regulars failed:', error.message);
+      process.exit(1);
+    }
+  });
+
 // Search within favourites
 program
   .command('fav-search <query>')
