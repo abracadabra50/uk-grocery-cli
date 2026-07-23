@@ -507,17 +507,21 @@ program
 // Tesco: import session from Chrome cookie export
 program
   .command('import-session')
-  .description('Tesco only — import cookies exported from Chrome as a session fallback')
-  .requiredOption('--file <path>', 'Path to cookies JSON file exported from Chrome DevTools')
+  .description('Tesco/Ocado — import cookies exported from a real browser as a session fallback')
+  .requiredOption('--file <path>', 'Path to cookies JSON file (Chrome DevTools, Cookie-Editor, or Playwright storage_state)')
   .action(async (options, cmd) => {
     const providerName = cmd.optsWithGlobals().provider;
-    if (providerName !== 'tesco') {
-      console.error('❌ The import-session command is only available for --provider tesco');
-      process.exit(1);
-    }
     try {
-      const { importSession } = await import('./providers/tesco/import-session');
-      importSession(options.file);
+      if (providerName === 'tesco') {
+        const { importSession } = await import('./providers/tesco/import-session');
+        importSession(options.file);
+      } else if (providerName === 'ocado') {
+        const { importSession } = await import('./providers/ocado');
+        importSession(options.file);
+      } else {
+        console.error('❌ The import-session command is only available for --provider tesco or --provider ocado');
+        process.exit(1);
+      }
     } catch (error: any) {
       console.error('❌ Session import failed:', error.message);
       process.exit(1);
