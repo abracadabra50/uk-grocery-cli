@@ -406,6 +406,15 @@ groc logout
 groc status              Check login status
 ```
 
+**Automatic re-authentication (Sainsbury's):** sessions expire after ~20 minutes. Set both env vars and the CLI re-logins headlessly on 401/403 and retries the failed request, so long-running agents don't die mid-shop:
+
+```bash
+export SAINSBURYS_EMAIL=you@example.com
+export SAINSBURYS_PASSWORD=yourpass
+```
+
+If your account has MFA enabled, headless re-auth fails fast with a message telling you to run `groc login` interactively — it never blocks waiting for input.
+
 ### Tesco Authentication
 
 Tesco uses Akamai bot detection, which can block automated form filling. The CLI now launches Playwright with stealth patches and a real Chrome channel when available, but imported browser cookies remain the reliable path.

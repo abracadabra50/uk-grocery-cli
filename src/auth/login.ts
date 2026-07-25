@@ -13,10 +13,21 @@ export interface SessionData {
   lastLogin: string;
 }
 
-export async function login(email: string, password: string): Promise<SessionData> {
-  console.log('🔐 Logging in to Sainsbury\'s...');
-  
-  const browser = await chromium.launch({ headless: false });
+export interface LoginOptions {
+  /**
+   * Run the browser headless (for automatic re-auth). Progress logs go to
+   * stderr so JSON on stdout stays clean, and an MFA challenge fails fast
+   * instead of prompting — MFA needs an interactive `groc login`.
+   */
+  headless?: boolean;
+}
+
+export async function login(email: string, password: string, options: LoginOptions = {}): Promise<SessionData> {
+  const headless = options.headless ?? false;
+  const log = headless ? console.error : console.log;
+  log('🔐 Logging in to Sainsbury\'s...');
+
+  const browser = await chromium.launch({ headless });
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
   });
@@ -25,42 +36,42 @@ export async function login(email: string, password: string): Promise<SessionDat
   
   try {
     // Go to login page (OAuth endpoint)
-    console.log('📍 Navigating to login page...');
+    log('📍 Navigating to login page...');
     await page.goto('https://www.sainsburys.co.uk/gol-ui/oauth/login', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(3000);
     
     // Handle cookie consent if present
     try {
-      console.log('🍪 Checking for cookie consent...');
+      log('🍪 Checking for cookie consent...');
       const acceptButton = page.locator('#onetrust-accept-btn-handler');
       if (await acceptButton.isVisible({ timeout: 3000 })) {
-        console.log('🍪 Accepting cookies...');
+        log('🍪 Accepting cookies...');
         await acceptButton.click();
-        console.log('🍪 Waiting for banner to dismiss...');
+        log('🍪 Waiting for banner to dismiss...');
         await page.waitForTimeout(3000);
         // Wait for overlay to disappear
         await page.waitForSelector('#onetrust-consent-sdk.ot-hide, .onetrust-pc-dark-filter.ot-hide', { timeout: 5000 }).catch(() => {});
       }
     } catch (e) {
-      console.log('🍪 No cookie consent found or already accepted');
+      log('🍪 No cookie consent found or already accepted');
     }
     
     // Wait for login form to appear
-    console.log('⏳ Waiting for login form...');
+    log('⏳ Waiting for login form...');
     await page.waitForSelector('input[type="email"], input[name="email"], #username', { timeout: 10000 });
     
     // Fill in email
-    console.log('📧 Entering email...');
+    log('📧 Entering email...');
     await page.fill('input[type="email"], input[name="email"], #username', email);
     await page.waitForTimeout(500);
     
     // Fill in password
-    console.log('🔑 Entering password...');
+    log('🔑 Entering password...');
     await page.fill('input[type="password"], input[name="password"], #password', password);
     await page.waitForTimeout(500);
     
     // Force remove any cookie overlays blocking interactions
-    console.log('🧹 Removing cookie overlays...');
+    log('🧹 Removing cookie overlays...');
     // @ts-ignore - runs in browser context
     await page.evaluate(() => {
       // @ts-ignore
@@ -73,21 +84,24 @@ export async function login(email: string, password: string): Promise<SessionDat
     await page.waitForTimeout(1000);
     
     // Click login button
-    console.log('👆 Clicking login...');
+    log('👆 Clicking login...');
     await page.click('button[type="submit"], button[data-testid="log-in"]');
     
     // Wait for navigation
-    console.log('⏳ Waiting for login...');
+    log('⏳ Waiting for login...');
     await page.waitForTimeout(5000);
     
     // Check if logged in
     const currentUrl = page.url();
-    console.log(`Current URL: ${currentUrl}`);
+    log(`Current URL: ${currentUrl}`);
     
     // Handle MFA if required
     if (currentUrl.includes('/mfa')) {
-      console.log('🔐 MFA required - SMS code sent');
-      console.log('📱 Check your phone for the 6-digit code');
+      if (headless) {
+        throw new Error('Sainsbury\'s asked for MFA — run `groc login` interactively to complete it.');
+      }
+      log('🔐 MFA required - SMS code sent');
+      log('📱 Check your phone for the 6-digit code');
       
       // Prompt for MFA code
       const rl = readline.createInterface({
@@ -106,7 +120,7 @@ export async function login(email: string, password: string): Promise<SessionDat
         throw new Error('Invalid MFA code - must be 6 digits');
       }
       
-      console.log('🔑 Submitting MFA code...');
+      log('🔑 Submitting MFA code...');
       await page.fill('#code, input[name="code"]', mfaCode);
       await page.waitForTimeout(500);
       
@@ -124,11 +138,11 @@ export async function login(email: string, password: string): Promise<SessionDat
       
       await page.click('button[data-testid="submit-code"], button[type="submit"]:has-text("Continue")');
       
-      console.log('⏳ Waiting for redirect...');
+      log('⏳ Waiting for redirect...');
       await page.waitForTimeout(5000);
       
       const finalUrl = page.url();
-      console.log(`Final URL after MFA: ${finalUrl}`);
+      log(`Final URL after MFA: ${finalUrl}`);
       
       if (finalUrl.includes('login') || finalUrl.includes('mfa')) {
         throw new Error('MFA verification failed - check code and try again');
@@ -137,7 +151,7 @@ export async function login(email: string, password: string): Promise<SessionDat
       throw new Error('Login failed - still on login page');
     }
     
-    console.log('✅ Login successful!');
+    log('✅ Login successful!');
     
     // Get cookies
     const cookies = await context.cookies();
@@ -167,7 +181,7 @@ export function saveSession(session: SessionData) {
   }
   
   fs.writeFileSync(SESSION_FILE, JSON.stringify(session, null, 2), { mode: 0o600 });
-  console.log(`💾 Session saved to ${SESSION_FILE}`);
+  console.error(`💾 Session saved to ${SESSION_FILE}`);
 }
 
 export function loadSession(): SessionData | null {
@@ -181,13 +195,13 @@ export function loadSession(): SessionData | null {
 
     // Check if expired
     if (new Date(session.expiresAt) < new Date()) {
-      console.log('⚠️  Session expired');
+      console.error('⚠️  Session expired');
       return null;
     }
 
     return session;
   } catch (error) {
-    console.log('⚠️  Corrupt session file, removing');
+    console.error('⚠️  Corrupt session file, removing');
     fs.unlinkSync(SESSION_FILE);
     return null;
   }
@@ -200,6 +214,6 @@ export function getCookieString(session: SessionData): string {
 export function clearSession() {
   if (fs.existsSync(SESSION_FILE)) {
     fs.unlinkSync(SESSION_FILE);
-    console.log('🗑️  Session cleared');
+    console.error('🗑️  Session cleared');
   }
 }

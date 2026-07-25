@@ -12,6 +12,8 @@ export class SainsburysProvider implements GroceryProvider {
   readonly name = 'sainsburys';
   private client: AxiosInstance;
   private storeNumber: string;
+  /** Single-flight guard so concurrent 401s trigger one Playwright login, not N. */
+  private reauthInFlight: Promise<void> | null = null;
 
   constructor() {
     // Store number can be configured via environment variable
@@ -27,6 +29,48 @@ export class SainsburysProvider implements GroceryProvider {
 
     // Load session if exists
     this.loadSession();
+
+    // Auto re-auth (issue #11): Sainsbury's sessions expire after ~20 min.
+    // Opt in by setting SAINSBURYS_EMAIL + SAINSBURYS_PASSWORD — on a
+    // 401/403 we re-login headlessly once and replay the failed request.
+    this.client.interceptors.response.use(undefined, async (error: any) => {
+      const status = error?.response?.status;
+      const config = error?.config;
+      const email = process.env.SAINSBURYS_EMAIL;
+      const password = process.env.SAINSBURYS_PASSWORD;
+      if ((status === 401 || status === 403) && config && !config._authRetry && email && password) {
+        config._authRetry = true;
+        if (!this.reauthInFlight) {
+          console.error(`⚠️  Sainsbury's session rejected (HTTP ${status}) — re-authenticating…`);
+          this.reauthInFlight = this.headlessRelogin(email, password)
+            .finally(() => { this.reauthInFlight = null; });
+        }
+        await this.reauthInFlight;
+        config.headers = {
+          ...config.headers,
+          Cookie: this.client.defaults.headers.common['Cookie'],
+          wcauthtoken: this.client.defaults.headers.common['wcauthtoken'],
+        };
+        return this.client.request(config);
+      }
+      throw error;
+    });
+  }
+
+  private async headlessRelogin(email: string, password: string): Promise<void> {
+    const sessionData = await login(email, password, { headless: true });
+    this.applySession(sessionData.cookies);
+  }
+
+  private applySession(cookies: any[]): void {
+    this.client.defaults.headers.common['Cookie'] =
+      cookies.map((c: any) => `${c.name}=${c.value}`).join('; ');
+    const authCookie = cookies.find((c: any) => c.name.startsWith('WC_AUTHENTICATION_'));
+    if (authCookie) {
+      this.client.defaults.headers.common['wcauthtoken'] = authCookie.value;
+    } else {
+      delete this.client.defaults.headers.common['wcauthtoken'];
+    }
   }
 
   private loadSession() {
@@ -35,21 +79,12 @@ export class SainsburysProvider implements GroceryProvider {
         const session = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'));
         if (session.cookies) {
           // Handle both formats: array (from login.ts) or string (legacy)
-          let cookieString: string;
           if (Array.isArray(session.cookies)) {
-            // Convert cookie objects to header string
-            cookieString = session.cookies.map((c: any) => `${c.name}=${c.value}`).join('; ');
-            
-            // Extract WC_AUTHENTICATION token for basket operations
-            const authCookie = session.cookies.find((c: any) => c.name.startsWith('WC_AUTHENTICATION_'));
-            if (authCookie) {
-              this.client.defaults.headers.common['wcauthtoken'] = authCookie.value;
-            }
+            this.applySession(session.cookies);
           } else {
-            // Already a string
-            cookieString = session.cookies;
+            // Legacy format: cookies already a header string
+            this.client.defaults.headers.common['Cookie'] = session.cookies;
           }
-          this.client.defaults.headers.common['Cookie'] = cookieString;
         }
 
       }
@@ -58,29 +93,10 @@ export class SainsburysProvider implements GroceryProvider {
     }
   }
 
-  private saveSession(cookies: string) {
-    const dir = path.dirname(SESSION_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(SESSION_FILE, JSON.stringify({ cookies, savedAt: new Date().toISOString() }), { mode: 0o600 });
-  }
-
   async login(email: string, password: string): Promise<void> {
+    // login() saves the session file itself; we just adopt the cookies.
     const sessionData = await login(email, password);
-    // Convert cookie objects to cookie header string
-    const cookieString = sessionData.cookies.map((c: any) => `${c.name}=${c.value}`).join('; ');
-    
-    // Extract WC_AUTHENTICATION token for basket operations
-    const authCookie = sessionData.cookies.find((c: any) => c.name.startsWith('WC_AUTHENTICATION_'));
-    if (authCookie) {
-      this.client.defaults.headers.common['wcauthtoken'] = authCookie.value;
-    }
-
-    
-    // Don't call saveSession - login() already saved the full session data
-    // Just set the cookie header for API requests
-    this.client.defaults.headers.common['Cookie'] = cookieString;
+    this.applySession(sessionData.cookies);
   }
 
   async logout(): Promise<void> {
