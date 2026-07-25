@@ -43,13 +43,13 @@ npx playwright install chromium
 # Login (opens browser, requires SMS 2FA)
 npm run groc -- --provider sainsburys login --email EMAIL --password PASS
 
-# Session saved to ~/.sainsburys/session.json (~7 day expiry)
+# Session saved to ~/.sainsburys/session.json
 ```
 
 **Notes:**
-- SMS 2FA required on every fresh login
-- Session lasts ~7 days before re-login needed
-- Set `GROC_EMAIL` / `GROC_PASSWORD` env vars as alternative
+- SMS 2FA may be required on fresh logins
+- Sessions expire after ~20 minutes of real-world use
+- **Auto re-auth (recommended for agents):** set `SAINSBURYS_EMAIL` + `SAINSBURYS_PASSWORD` and the CLI re-logins headlessly on any 401/403 and retries the failed request. MFA-protected accounts fail fast with a pointer to interactive login instead of hanging.
 
 ---
 

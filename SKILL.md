@@ -27,7 +27,7 @@ Each supermarket has a dedicated skill file with provider-specific commands, aut
 |-------------|-----------|--------|
 | **Sainsbury's** | [`skills/sainsburys.md`](skills/sainsburys.md) | Full coverage |
 | **Tesco** | [`skills/tesco.md`](skills/tesco.md) | Full coverage + staples |
-| **Ocado** | [`skills/ocado.md`](skills/ocado.md) | Search & basket working |
+| **Ocado** | [`skills/ocado.md`](skills/ocado.md) | Full coverage except slot booking/checkout (AWS WAF) |
 
 ---
 
@@ -101,13 +101,18 @@ All tools accept a `provider` parameter (`sainsburys`, `ocado`, `tesco`). Defaul
 | `grocery_book_slot` | Book delivery slot |
 | `grocery_checkout` | Checkout (dry_run=true by default) |
 | `grocery_orders` | View order history |
+| `grocery_favourites` | Favourite / frequently-bought products (Sainsbury's, Ocado) |
+| `grocery_favourites_search` | Search within favourites (Sainsbury's, Ocado) |
+| `grocery_categories` | List browse categories (Sainsbury's, Ocado) |
+| `grocery_browse` | Browse products in a category (Ocado) |
 | `grocery_providers` | List providers and login status |
 
-### Tesco-Specific Tools
+### Provider-Specific Tools
 
 | Tool | Description |
 |------|-------------|
 | `tesco_staples` | View, update, or auto-add repeat-purchase staples |
+| `ocado_regulars` | List Ocado recurring-shopping ("Regulars") definitions |
 
 ---
 

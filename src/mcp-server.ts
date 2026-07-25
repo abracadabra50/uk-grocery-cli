@@ -116,7 +116,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'grocery_favourites',
-        description: 'List favourite / frequently-bought products for a supermarket account. Currently supported by Sainsbury\'s.',
+        description: 'List favourite / frequently-bought products for a supermarket account. Supported by Sainsbury\'s and Ocado.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -127,7 +127,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'grocery_favourites_search',
-        description: 'Search within favourite / frequently-bought products. Currently supported by Sainsbury\'s.',
+        description: 'Search within favourite / frequently-bought products. Supported by Sainsbury\'s and Ocado.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -136,6 +136,37 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             limit: { type: 'number', description: 'Maximum results to return (default: 24)', default: 24 },
           },
           required: ['query'],
+        },
+      },
+      {
+        name: 'grocery_categories',
+        description: 'List browse categories at a supermarket (shape is provider-dependent). Supported by Sainsbury\'s and Ocado.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            provider: { ...providerEnum, default: 'sainsburys' },
+          },
+        },
+      },
+      {
+        name: 'grocery_browse',
+        description: 'Browse products in a category. Pass a category path from grocery_categories (e.g. Ocado: "/categories/fresh/12345"). Currently supported by Ocado.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            provider: { ...providerEnum, default: 'ocado' },
+            category_path: { type: 'string', description: 'Category path from grocery_categories' },
+            limit: { type: 'number', description: 'Maximum results to return (default: 50)', default: 50 },
+          },
+          required: ['category_path'],
+        },
+      },
+      {
+        name: 'ocado_regulars',
+        description: 'List Ocado recurring-shopping ("Regulars") definitions on the account.',
+        inputSchema: {
+          type: 'object',
+          properties: {},
         },
       },
 
@@ -396,6 +427,64 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       return textResult(
         `Favourite search results for "${query}" at ${providerName} (showing ${products.length}):\n\n${formatted}`
+      );
+    }
+
+    // ── grocery_categories ──
+    if (name === 'grocery_categories') {
+      if (loginError) return textResult(loginError, true);
+      const provider: any = getProvider(providerName);
+
+      if (typeof provider.getCategories !== 'function') {
+        return textResult(`Provider "${providerName}" does not support category browsing.`, true);
+      }
+
+      const categories = await provider.getCategories();
+      return textResult(
+        `${providerName.toUpperCase()} categories:\n\n${JSON.stringify(categories, null, 2)}`
+      );
+    }
+
+    // ── grocery_browse ──
+    if (name === 'grocery_browse') {
+      if (loginError) return textResult(loginError, true);
+      const { category_path, limit = 50 } = args as { category_path: string; limit?: number };
+      const provider: any = getProvider(providerName);
+
+      if (typeof provider.browseCategory !== 'function') {
+        return textResult(`Provider "${providerName}" does not support category browsing.`, true);
+      }
+
+      const products = await provider.browseCategory(category_path, { limit });
+      if (products.length === 0) {
+        return textResult(`No products found in "${category_path}" at ${providerName}.`);
+      }
+
+      const formatted = products.map((p: any, i: number) => {
+        const stock = p.in_stock ? 'In stock' : 'Out of stock';
+        const unitPrice = p.unit_price ? ` (${p.unit_price.price}/${p.unit_price.measure})` : '';
+        return `${i + 1}. ${p.name}\n   £${p.retail_price.price.toFixed(2)}${unitPrice} | ${stock} | ID: ${p.product_uid}`;
+      }).join('\n\n');
+
+      return textResult(
+        `Products in "${category_path}" at ${providerName} (showing ${products.length}):\n\n${formatted}`
+      );
+    }
+
+    // ── ocado_regulars ──
+    if (name === 'ocado_regulars') {
+      const provider: any = getProvider('ocado');
+
+      if (typeof provider.getRegulars !== 'function') {
+        return textResult('Ocado provider does not support regulars.', true);
+      }
+
+      const regulars = await provider.getRegulars();
+      if (regulars.length === 0) {
+        return textResult('No Regulars set up on this Ocado account.');
+      }
+      return textResult(
+        `Ocado Regulars (${regulars.length}):\n\n${JSON.stringify(regulars, null, 2)}`
       );
     }
 

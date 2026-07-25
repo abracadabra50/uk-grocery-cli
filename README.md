@@ -205,6 +205,11 @@ Add to Claude Desktop config (`claude_desktop_config.json`):
 | `grocery_book_slot` | Book delivery slot |
 | `grocery_checkout` | Checkout (dry_run default) |
 | `grocery_orders` | Order history |
+| `grocery_favourites` | Favourites (Sainsbury's, Ocado) |
+| `grocery_favourites_search` | Search within favourites (Sainsbury's, Ocado) |
+| `grocery_categories` | List browse categories (Sainsbury's, Ocado) |
+| `grocery_browse` | Browse a category (Ocado) |
+| `ocado_regulars` | Ocado recurring-shopping definitions |
 | `grocery_login` | Login to provider |
 | `grocery_status` | Check login status |
 | `grocery_providers` | List providers |
