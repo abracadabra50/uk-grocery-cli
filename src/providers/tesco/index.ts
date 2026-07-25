@@ -145,7 +145,7 @@ export class TescoProvider implements GroceryProvider {
         end_time: s.end ? new Date(s.end).toTimeString().slice(0, 5) : '',
         date: s.start ? new Date(s.start).toISOString().slice(0, 10) : '',
         price: parseFloat(s.price?.afterDiscount || s.charge || 0),
-        available: s.status === 'available' || s.status === 'AVAILABLE',
+        available: String(s.status || '').toLowerCase() === 'available',
       }));
 
     } catch {
