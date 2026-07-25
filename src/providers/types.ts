@@ -14,6 +14,9 @@ export interface Product {
   in_stock: boolean;
   image_url?: string;
   provider: string; // sainsburys, ocado, tesco, etc.
+  rating?: number;       // 0-5 overall rating, when the provider exposes it
+  review_count?: number; // number of ratings behind `rating`
+  size?: string;         // pack size, e.g. "750g", "6 pack"
 }
 
 export interface BasketItem {

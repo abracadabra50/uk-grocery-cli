@@ -13,7 +13,7 @@ allowed-tools: Bash({baseDir}/node:*), Bash(npm:run:groc:*)
 
 # Ocado Groceries Skill
 
-> ⚠️ **This provider is currently disabled.** Ocado migrated to a client-side React SPA and the previous REST endpoints have been removed. Every command below will throw a clear error until the provider is rebuilt against verified endpoints (or via a Playwright renderer). Tracking: [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5). Use `--provider sainsburys` or `--provider tesco` in the meantime.
+> ✅ **Rebuilt (2026-07).** The provider now uses Ocado's current internal web-app JSON API: `GET/POST /api/cart/v1/carts/active(/apply-quantity)` for the trolley (delta-quantity writes signed with an `x-csrf-token` header scraped from page HTML) and `PUT /api/webproductpagews/v6/products` for product info. Search parses the server-rendered `/search?q=` page's embedded `productEntities`. **Working:** login/import-session, search, getProduct, full basket CRUD. **Not yet:** delivery slots, checkout, order history — those throw clear errors (see [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5)). Note: products are addressed by UUID, not the numeric SKU in URLs.
 
 Search products, manage basket, and book delivery at Ocado.
 

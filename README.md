@@ -32,7 +32,7 @@ Built for agent frameworks like [OpenClaw](https://github.com/claw-labs/openclaw
 ## Supported Supermarkets
 
 - ✅ **Sainsbury's** - UK-wide delivery, search + basket flow
-- ⚠️ **Ocado** - **Currently broken.** Ocado migrated to a client-side React SPA and the previous endpoints have been removed. Provider is disabled and will throw a clear error until rebuilt. Tracking: [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5)
+- ✅ **Ocado** - Search + basket rebuilt against the current internal JSON API (2026-07). Delivery slots / checkout / orders still pending. Tracking: [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5)
 - ✅ **Tesco** - UK-wide delivery, search + basket + slots; browser-cookie import recommended for auth
 - 🔜 **Asda** - Planned Q2 2026
 - 🔜 **Morrisons** - Planned Q2 2026
