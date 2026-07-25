@@ -31,9 +31,9 @@ Built for agent frameworks like [OpenClaw](https://github.com/claw-labs/openclaw
 
 ## Supported Supermarkets
 
-- ✅ **Sainsbury's** - UK-wide delivery, search + basket flow
-- ✅ **Ocado** - Search + basket rebuilt against the current internal JSON API (2026-07). Delivery slots / checkout / orders still pending. Tracking: [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5)
-- ✅ **Tesco** - UK-wide delivery, search + basket + slots; browser-cookie import recommended for auth
+- ✅ **Sainsbury's** - UK-wide delivery, search + basket flow, favourites, auto re-auth
+- ✅ **Ocado** - Rebuilt against the current internal JSON API (2026-07): search, browse, favourites, basket, delivery slots, orders, regulars. Slot *booking* and checkout still pending (AWS WAF bot detection)
+- ✅ **Tesco** - UK-wide delivery, search + basket + slots + staples; browser-cookie import recommended for auth
 - 🔜 **Asda** - Planned Q2 2026
 - 🔜 **Morrisons** - Planned Q2 2026
 
@@ -377,7 +377,7 @@ groc checkout            Place order
 
 ### Favourites
 
-Currently only supported on Sainsbur's.
+Supported on Sainsbury's and Ocado.
 
 ```bash
 groc favourites              List favourites/frequently-bought products
@@ -385,6 +385,22 @@ groc favourites --json       Output favourites as JSON
 groc fav-search <query>      Search within favourites
 groc fav-search milk --json  Output favourite search as JSON
 ```
+
+### Browsing & Categories
+
+```bash
+groc categories              List browse categories (shape is provider-dependent)
+groc browse <category-path>  Browse products in a category (use a path from `categories`)
+```
+
+### Ocado-Specific Commands
+
+```bash
+groc --provider ocado regulars                              List recurring-shopping ("Regulars") definitions
+groc --provider ocado import-session --file <cookies.json>  Import cookies from browser export (reliable auth path)
+```
+
+Ocado sits behind AWS WAF bot detection: plain API calls work once you hold real browser cookies, so `import-session` is the recommended way in. Slot booking and checkout are not implemented — everything up to them (search, browse, favourites, basket, slots, orders, regulars) is.
 
 ### Tesco-Specific Commands
 
@@ -483,19 +499,25 @@ interface GroceryProvider {
 
 Each provider implements this interface. Adding new supermarkets is plug-and-play.
 
-### Clean REST APIs
+### Reverse-Engineered APIs
 
-Both Sainsbury's and Ocado use simple REST:
+Sainsbury's uses simple REST; Ocado mixes JSON endpoints, GraphQL, and server-rendered page scraping:
 
 ```
 Sainsbury's:
   GET  /groceries-api/gol-services/product/v1/product?filter[keyword]=milk
   POST /groceries-api/gol-services/basket/v2/basket/items
-  
+
 Ocado:
-  GET  /api/search/v1/products?query=milk
-  POST /api/trolley/v1/items
+  GET  /search?q=milk                                  (server-rendered, productEntities blob)
+  GET  /api/cart/v1/carts/active                       (read trolley)
+  POST /api/cart/v1/carts/active/apply-quantity        (write trolley — quantities are deltas)
+  PUT  /api/webproductpagews/v6/products               (batch product info by UUID)
+  POST /api/ecomslots/v2/slots                         (delivery slots)
+  POST /graphql                                        (order history)
 ```
+
+Ocado writes require an `x-csrf-token` header scraped from any page's HTML; the provider handles this (with re-scrape on 403) automatically.
 
 See [`API-REFERENCE.md`](./API-REFERENCE.md) for complete endpoint documentation.
 
@@ -559,18 +581,19 @@ uk-grocery-cli/
 ## Known Limitations
 
 ### Authentication
-- **Sainsbury's**: SMS 2FA required on every fresh login — session duration is controlled by Sainsbury's
+- **Sainsbury's**: SMS 2FA may be required on fresh logins; sessions expire after ~20 minutes. Set `SAINSBURYS_EMAIL` + `SAINSBURYS_PASSWORD` for automatic headless re-auth on 401/403.
 - **Tesco**: Akamai bot detection can block automated login. Use `import-session` (manual browser login → Cookie Editor export → `groc --provider tesco import-session --file cookies.json`) as the reliable path. Session duration is controlled by Tesco and may be short.
-- **Ocado**: ⚠️ Disabled. Site moved to React SPA, previous endpoints removed. See [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5).
+- **Ocado**: AWS WAF bot detection blocks cold requests. Log in via Playwright (`groc --provider ocado login`) or, more reliably, `import-session` with cookies exported from a real browser.
 
 ### API Coverage
 - ✅ **Working**: Sainsbury's and Tesco search/product data; Tesco basket/slots with a valid session
+- ✅ **Working**: Ocado search, category browse, favourites, basket, delivery slot listing, order history, regulars (with a valid session)
 - ⚠️ **Partial**: Basket management depends on supermarket session lifetime and bot checks
 - ✅ **Working**: Tesco delivery slots + checkout handoff (browser-automated, requires manual payment confirmation)
 - ⚠️ **Experimental**: Sainsbury's checkout flow (needs real-world testing)
-- ⚠️ **Broken**: Entire Ocado provider — endpoints removed by Ocado, awaiting rebuild ([#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5))
+- ❌ **Not implemented**: Ocado slot booking + checkout (AWS WAF — contributions welcome)
 - ✅ **Working**: Sainsbury's Favourites list
-- 🔜 **Coming**: Order tracking, substitutions
+- 🔜 **Coming**: Order tracking, substitutions, Tesco in-store stock lookup ([#7](https://github.com/abracadabra50/uk-grocery-cli/issues/7))
 
 Some endpoints are still being reverse-engineered. Contributions welcome.
 
@@ -599,10 +622,9 @@ Open an issue or PR.
 
 ## Roadmap
 
-### v2.0 (Current)
+### v2.0
 - ✅ Multi-provider architecture
 - ✅ Sainsbury's provider (search + basket flow)
-- ⚠️ Ocado provider (disabled — see [#5](https://github.com/abracadabra50/uk-grocery-cli/issues/5))
 - ✅ Tesco provider (search, basket, checkout handoff, slots, staples; cookie import recommended)
 
 ### v2.1 (Current)
@@ -610,8 +632,14 @@ Open an issue or PR.
 - ✅ Per-supermarket skill files (`skills/`)
 - ✅ Cross-store price comparison via MCP
 - ✅ Tesco staples management via MCP
+- ✅ JSON HTTP API for agents without filesystem access
+- ✅ Ocado provider rebuilt against current internal API (2026-07, thanks [@ah-](https://github.com/ah-))
+- ✅ Sainsbury's automatic re-auth on session expiry
+- ✅ Sainsbury's + Ocado favourites
 
-### v2.2 (Q2 2026)
+### v2.2
+- 🔜 Ocado slot booking + checkout (AWS WAF workaround needed)
+- 🔜 Tesco in-store stock/aisle lookup ([#7](https://github.com/abracadabra50/uk-grocery-cli/issues/7))
 - 🔜 Delivery slot optimization
 - 🔜 Price history tracking
 - 🔜 Substitution handling
