@@ -29,8 +29,10 @@ import { GroceryProvider, Product, Basket, BasketItem, DeliverySlot, Order, Sear
  * numeric SKU in /products/slug/<sku> URLs. Search returns UUIDs; use those
  * for all basket operations.
  *
- * Not yet reverse-engineered (contributions welcome): delivery slots, slot
- * booking, checkout, order history. Those methods throw a clear error.
+ * Not yet reverse-engineered (contributions welcome): slot booking and
+ * checkout — booking sits behind AWS WAF bot detection. Those two methods
+ * throw a clear error; everything else (search, browse, favourites, basket,
+ * slots, orders, regulars) works.
  */
 
 const BASE_URL = 'https://www.ocado.com';
@@ -329,6 +331,14 @@ export class OcadoProvider implements GroceryProvider {
       headers: { Accept: 'text/html,application/xhtml+xml' },
     });
     const html = String(res.data);
+    if (!html.includes('"productEntities"')) {
+      // A real listing page always embeds the blob (empty for zero results).
+      // Its total absence means we got the AWS WAF challenge or a login page.
+      throw new Error(
+        'Ocado returned a page with no product data — AWS WAF challenge or expired session. ' +
+        'Run `groc --provider ocado login` or `import-session --file <cookies.json>`.'
+      );
+    }
     const entities = extractProductEntities(html);
 
     const bySku: Record<string, any> = {};
