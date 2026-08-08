@@ -394,7 +394,12 @@ export class TescoAPI {
             items {
               actual {
                 items {
-                  product { title }
+                  product {
+                    title
+                    tpnb
+                    tpnc
+                    price { beforeDiscount afterDiscount unitPrice }
+                  }
                   quantity { numberOfUnits weight unitOfMeasure }
                 }
               }
