@@ -99,21 +99,36 @@ export class TescoProvider implements GroceryProvider {
     return orderId;
   }
 
+  /**
+   * UpdateBasket takes product_uid (TPNC), but the CLI's `remove`/`update` commands
+   * are documented to take the basket item_id (the barcode-style ID shown by `groc
+   * basket`) — matching every other provider. Resolve whichever one we were given
+   * against the live basket so both forms work.
+   */
+  private async resolveProductUid(itemOrProductId: string): Promise<string> {
+    const basket = await this.getBasket();
+    const match = basket.items.find(
+      i => i.item_id === itemOrProductId || i.product_uid === itemOrProductId
+    );
+    return match?.product_uid || itemOrProductId;
+  }
+
   async addToBasket(productId: string, quantity: number): Promise<void> {
     const orderId = await this.getBasketOrderId();
     await this.api.updateBasket(productId, quantity, orderId);
   }
 
   async updateBasketItem(itemId: string, quantity: number): Promise<void> {
-    // itemId here is the product_uid (TPNC) since that's what UpdateBasket takes
+    const productUid = await this.resolveProductUid(itemId);
     const orderId = await this.getBasketOrderId();
-    await this.api.updateBasket(itemId, quantity, orderId);
+    await this.api.updateBasket(productUid, quantity, orderId);
   }
 
   async removeFromBasket(itemId: string): Promise<void> {
+    const productUid = await this.resolveProductUid(itemId);
     // Set quantity to 0 to remove
     const orderId = await this.getBasketOrderId();
-    await this.api.updateBasket(itemId, 0, orderId);
+    await this.api.updateBasket(productUid, 0, orderId);
   }
 
   async clearBasket(): Promise<void> {
@@ -190,27 +205,30 @@ export class TescoProvider implements GroceryProvider {
 
   async getOrders(): Promise<Order[]> {
     const data = await this.api.getOrders();
-    if (!data) return [];
-
-    const rawOrders: any[] = Array.isArray(data)
-      ? data
-      : (data.orders || data.orderHistory || []);
+    const rawOrders: any[] = data?.orders || [];
 
     return rawOrders.map((o: any) => ({
-      order_id: String(o.id || o.orderId || o.order_id || ''),
-      status: o.status || o.orderStatus || 'unknown',
-      total: parseFloat(o.total || o.orderTotal || o.totalAmount || 0),
-      delivery_slot: o.deliverySlot
+      order_id: String(o.orderNo || o.id || ''),
+      status: o.status || 'unknown',
+      total: parseFloat(o.totalPrice || 0),
+      delivery_slot: o.slot
         ? {
-            slot_id: String(o.deliverySlot.id || o.deliverySlot.slotId || ''),
-            start_time: o.deliverySlot.startTime || o.deliverySlot.start || '',
-            end_time: o.deliverySlot.endTime || o.deliverySlot.end || '',
-            date: o.deliverySlot.date || '',
-            price: parseFloat(o.deliverySlot.price || 0),
+            slot_id: '',
+            start_time: o.slot.start || '',
+            end_time: o.slot.end || '',
+            date: o.createdDateTime || '',
+            price: parseFloat(o.slot.charge || 0),
             available: true,
           }
         : undefined,
-      items: (o.items || o.orderLines || []).map((i: any) => this.normaliseBasketItem(i)),
+      items: (o.items || []).map((i: any) => ({
+        item_id: '',
+        product_uid: String(i.product?.id || ''),
+        name: i.product?.title || '',
+        quantity: i.quantity || 0,
+        unit_price: 0,
+        total_price: 0,
+      })),
     }));
   }
 
