@@ -352,9 +352,6 @@ export class TescoAPI {
             status
             createdDateTime
             totalPrice
-            totalItems
-            paymentMode
-            shoppingMethod
             slot { start end charge }
             items {
               quantity
@@ -363,7 +360,6 @@ export class TescoAPI {
               product { id title }
             }
           }
-          info { total page count pageSize offset }
         }
       }
     `, {
