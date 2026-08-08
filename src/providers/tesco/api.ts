@@ -357,7 +357,7 @@ export class TescoAPI {
               quantity
               unit
               weight
-              product { id title }
+              product { id tpnb tpnc title }
             }
           }
         }
@@ -384,21 +384,12 @@ export class TescoAPI {
           createdDateTime
           totalPrice
           slot { start end charge }
-          fulfilment {
-            status
-            totalItems
+          splitView {
             items {
-              actual {
-                items {
-                  product {
-                    title
-                    tpnb
-                    tpnc
-                    price { beforeDiscount afterDiscount unitPrice }
-                  }
-                  quantity { numberOfUnits weight unitOfMeasure }
-                }
-              }
+              id
+              cost
+              quantity
+              product { title tpnb tpnc }
             }
           }
         }
