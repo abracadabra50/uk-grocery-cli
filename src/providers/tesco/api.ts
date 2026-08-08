@@ -18,7 +18,6 @@
 import axios, { AxiosInstance } from 'axios';
 
 const XAPI_URL = 'https://xapi.tesco.com/';
-const ORDERS_URL = 'https://www.tesco.com/groceries/en-GB/orders';
 
 // Static API key baked into Tesco's mfe-* bundles (confirmed from discovery)
 const TESCO_API_KEY = 'TvOSZJHlEk0pjniDGQFAc9Q59WGAR4dA';
@@ -340,25 +339,70 @@ export class TescoAPI {
   }
 
   // ─────────────────────────────────────────────────────────
-  // Orders (REST endpoint, not GraphQL)
+  // Orders (GraphQL — mfe-orders, discovered from live traffic 2026-08-08)
   // ─────────────────────────────────────────────────────────
 
   async getOrders(page: number = 1, pageSize: number = 10) {
-    try {
-      const response = await this.client.get(ORDERS_URL, {
-        params: { page, pageSize },
-        headers: { Accept: 'application/json' },
-      });
-      return response.data;
-    } catch {
-      return null;
-    }
+    const data = await this.gql('GetPreviousOrdersWithPagination', `
+      query GetPreviousOrdersWithPagination($orderContexts: [OrderContextType], $page: Int, $count: Int) {
+        orderSearch(page: $page, count: $count, orderContexts: $orderContexts) {
+          orders {
+            id
+            orderNo
+            status
+            createdDateTime
+            totalPrice
+            totalItems
+            paymentMode
+            shoppingMethod
+            slot { start end charge }
+            items {
+              quantity
+              unit
+              weight
+              product { id title }
+            }
+          }
+          info { total page count pageSize offset }
+        }
+      }
+    `, {
+      orderContexts: [
+        { type: 'GROCERY', statuses: ['Previous'] },
+        { type: 'MARKETPLACE', statuses: ['Previous'] },
+        { type: 'FNF', statuses: ['Previous'] },
+      ],
+      page,
+      count: pageSize,
+    });
+    return data?.orderSearch;
   }
 
   async getOrder(orderId: string) {
-    const response = await this.client.get(`${ORDERS_URL}/${orderId}`, {
-      headers: { Accept: 'application/json' },
-    });
-    return response.data;
+    const data = await this.gql('GetOrderReceipt', `
+      query GetOrderReceipt($id: ID!) {
+        order(orderId: $id) {
+          id
+          orderNo
+          status
+          createdDateTime
+          totalPrice
+          slot { start end charge }
+          fulfilment {
+            status
+            totalItems
+            items {
+              actual {
+                items {
+                  product { title }
+                  quantity { numberOfUnits weight unitOfMeasure }
+                }
+              }
+            }
+          }
+        }
+      }
+    `, { id: orderId });
+    return data?.order;
   }
 }
